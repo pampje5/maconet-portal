@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Form element consistency */
+input, select, textarea {
+  @apply border border-gray-300 rounded;
+}

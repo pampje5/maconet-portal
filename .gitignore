@@ -1,0 +1,16 @@
+#------python backend-------
+RoffelBackendPOC/venv/
+RoffelBackendPOC/__pycache__/
+RoffelBackendPOC/*.pyc 
+
+# sql database
+RoffelBackendPOC/roffel_tool.db 
+
+#-----NODE FRONTEND----------
+roffel-portal/node_modules/
+roffel-portal/.env
+roffel-portal/build/
+
+#------OS TRASH--------
+.DS_Store
+Thumbs.db

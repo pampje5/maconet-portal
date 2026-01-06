@@ -1,0 +1,44 @@
+
+To: orders@sullair.com
+Subject: Leadtime request service order testmail
+Content-Type: text/html; charset=UTF-8
+
+
+  <html>
+  <body>
+  Dear John Doe,<br><br>
+
+  We kindly request, with SO no.: <b>testmail</b>, the leadtimes for the following items:<br><br>
+
+  <table style="border-collapse:collapse;">
+    <tr>
+      <th style="border:1px solid #000;padding:4px;">Item</th>
+      <th style="border:1px solid #000;padding:4px;">Part No.</th>
+      <th style="border:1px solid #000;padding:4px;">Description</th>
+      <th style="border:1px solid #000;padding:4px;">QTY</th>
+      <th style="border:1px solid #000;padding:4px;">Price Each</th>
+      <th style="border:1px solid #000;padding:4px;">Leadtime NL</th>
+      <th style="border:1px solid #000;padding:4px;">Comments</th>
+    </tr>
+
+    
+      <tr>
+        <td style="border:1px solid #000;padding:4px;text-align:center;">1</td>
+        <td style="border:1px solid #000;padding:4px;">001684</td>
+        <td style="border:1px solid #000;padding:4px;">KIT,SEAL REPL OIL STOP VLV</td>
+        <td style="border:1px solid #000;padding:4px;text-align:center;">1</td>
+        <td style="border:1px solid #000;padding:4px;text-align:right;">57.09</td>
+        <td style="border:1px solid #000;padding:4px;"></td>
+        <td style="border:1px solid #000;padding:4px;"></td>
+      </tr>
+    
+  </table>
+
+  <br>
+  Kind regards,<br><br>
+
+  Maconet B.V.<br>
+  </body>
+  </html>
+  
+  
