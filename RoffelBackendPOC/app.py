@@ -33,7 +33,7 @@ Base = declarative_base()
 
 
 # ============================
-# SECURITY HELPERS
+# (SECURITY) HELPERS
 # ============================
 
 pwd_context = CryptContext(
@@ -63,6 +63,12 @@ def create_access_token(email: str, is_admin: bool) -> str:
 def check_api_key(x_api_key: Optional[str]):
     if x_api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Invalid API key")
+
+def format_currency(value):
+    if value is None:
+        return ""
+    return f"€ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
 
 
 # ============================
@@ -94,9 +100,11 @@ class ServiceOrderItem(Base):
     description = Column(String)
     qty = Column(Integer)
 
+    list_price = Column(Float)
     price_bruto = Column(Float)
     price_wvk = Column(Float)
     price_edmac = Column(Float)
+    price_purchase = Column(Float)
 
     leadtime = Column(String)
     bestellen = Column(Boolean, default=False)
@@ -222,9 +230,13 @@ class ServiceOrderItemIn(BaseModel):
     part_no: str
     description: Optional[str] = None
     qty: int
+
+    list_price: Optional[float] = None
     price_bruto: Optional[float] = None
     price_wvk: Optional[float] = None
     price_edmac: Optional[float] = None
+    price_purchase: Optional[float] = None
+
     leadtime: Optional[str] = None
     bestellen: bool = False
 
@@ -300,7 +312,19 @@ class SullairSettingsOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+class MailPreviewOut(BaseModel):
+    to: str
+    subject: str
+    body_html: str
     
+class MailSendIn(BaseModel):
+    to: str
+    subject: str
+    body_html: str
+
+class MailPreviewIn(BaseModel):
+    so: str
 
 # ============================
 # DEPENDENCY
@@ -688,7 +712,119 @@ def save_sullair_settings(data: SullairSettingsIn, db: Session = Depends(get_db)
 
     return rec
 
+# ============================
+# MAIL PREVIEW – SULLAIR
+# ============================
 
+@app.post("/mail/sullair/preview", response_model=MailPreviewOut)
+def preview_sullair_mail(
+    data: MailPreviewIn,
+    x_api_key: str = Header(...),
+    db: Session = Depends(get_db)
+):
+    check_api_key(x_api_key)
+
+    order = db.query(ServiceOrder).filter(ServiceOrder.so == data.so).first()
+    if not order:
+        raise HTTPException(404, "Serviceorder not found")
+
+    items = (
+        db.query(ServiceOrderItem)
+        .filter(ServiceOrderItem.serviceorder_id == order.id)
+        .all()
+    )
+
+    if not items:
+        raise HTTPException(400, "No items in serviceorder")
+
+    sullair_name = "John Doe"
+    sullair_email = "orders@sullair.com"
+
+    rows = ""
+    for idx, it in enumerate(items, start=1):
+        rows += f"""
+        <tr>
+          <td style="text-align:center;">{idx}</td>
+          <td>{it.part_no}</td>
+          <td>{it.description or ""}</td>
+          <td style="text-align:center;">{it.qty}</td>
+          <td style="text-align:right;">{format_currency(it.list_price)}</td>
+          <td></td>
+          <td></td>
+        </tr>
+        """
+
+    body = f"""
+    <div style="font-family: Arial, sans-serif; font-size: 14px; color: #000;">
+
+        <p style="margin: 0 0 16px 0;">
+            Dear {sullair_name},
+        </p>
+
+        <p style="margin: 0 0 20px 0;">
+            We kindly request, with serviceorder number
+            <b>{order.so}</b>, the leadtimes for the following items:
+        </p>
+
+        <table
+            style="border-collapse: collapse; margin-bottom: 20px; width: 100%;"
+        >
+            <tr>
+                <th style="border:1px solid #000; padding:6px; text-align:left;">Item</th>
+                <th style="border:1px solid #000; padding:6px;">Part No.</th>
+                <th style="border:1px solid #000; padding:6px;">Description</th>
+                <th style="border:1px solid #000; padding:6px; text-align:right;">QTY</th>
+                <th style="border:1px solid #000; padding:6px; text-align:right;">Price Each</th>
+                <th style="border:1px solid #000; padding:6px;">Leadtime NL</th>
+                <th style="border:1px solid #000; padding:6px;">Comments</th>
+            </tr>
+            {rows}
+        </table>
+
+        <p style="margin: 24px 0 4px 0;">
+            Kind regards,
+        </p>
+
+        <p style="margin: 0;">
+            <b>Maconet B.V.</b>
+        </p>
+
+    </div>
+    """
+
+
+    subject = f"Leadtime request service order {order.so}"
+
+    return {
+        "to": sullair_email,
+        "subject": subject,
+        "body_html": body
+    }
+
+
+@app.post("/mail/send")
+def send_mail(
+    data: MailSendIn,
+    x_api_key: str = Header(...),
+):
+    check_api_key(x_api_key)
+
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+
+    msg = MIMEMultipart("alternative")
+    msg["From"] = "Maconet B.V. <no-reply@maconet.nl>"
+    msg["To"] = data.to
+    msg["Subject"] = data.subject
+
+    msg.attach(MIMEText(data.body_html, "html"))
+
+    # ⚠️ SMTP later netjes in config
+    with smtplib.SMTP("localhost") as server:
+        server.send_message(msg)
+
+    return {"status": "sent"}
 
 
 

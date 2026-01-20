@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { formatCurrency, formatQty } from "../utils/format";
 
 export default function ServiceorderPage() {
 
@@ -18,10 +19,11 @@ export default function ServiceorderPage() {
   });
 
   // ========================
-  // TIJDELIJKE CONTACTGEGEVENS SULLAIR
+  // t.b.v. mail nieuwe stijl (met preview)
   // ========================
-  const SULLAIR_CONTACT_NAME = "John Doe";
-  const SULLAIR_CONTACT_EMAIL = "orders@sullair.com";
+  const [mailPreview, setMailPreview] = useState(null);
+  const [showMailModal, setShowMailModal] = useState(false);
+  const [editMode, setEditMode] = useState(false)
 
 
   function updateField(name, value) {
@@ -58,7 +60,7 @@ export default function ServiceorderPage() {
     }
 
     loadCustomers();
-  }, []);
+  }, [token]);
 
   // klant gekozen → prijs_type + contacten ophalen
   useEffect(() => {
@@ -104,7 +106,7 @@ export default function ServiceorderPage() {
 
     loadContacts();
 
-  }, [selectedCustomerId, customers]);
+  }, [selectedCustomerId, customers, token]);
 
 
   // ============================
@@ -169,9 +171,14 @@ export default function ServiceorderPage() {
           part_no: a.part_no,
           description: a.description,
           qty: 1,
+
+          //prijzen
+          list_price: a.list_price,
           price_bruto: a.price_bruto,
           price_wvk: a.price_wvk,
           price_edmac: a.price_edmac,
+          price_purchase: a.price_purchase,
+
           bestellen: false
         }
       ]);
@@ -203,148 +210,66 @@ export default function ServiceorderPage() {
   // MAIL SULLAIR
   // ============================
 
-  function prepareSullairRequestEmail() {
+  async function openSullairMailPreview() {
+  console.log("👉 Aanvraag bij Sullair geklikt");
 
   if (!form.so) {
-    alert("Geen serviceorder nummer ingevuld");
+    alert("Geen serviceorder nummer");
     return;
   }
 
-  if (!items.length) {
-    alert("Geen artikelen ingevoerd");
-    return;
+  try {
+    const res = await axios.post(
+      `${API}/mail/sullair/preview`,
+      { so: form.so },
+      {
+        headers: {
+          "x-api-key": "CHANGE_ME",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    console.log("📧 Mail preview ontvangen:", res.data);
+
+    setMailPreview(res.data);
+    setShowMailModal(true);
+
+  } catch (err) {
+    console.error("❌ Mail preview fout:", err);
+    alert(
+      err.response?.data?.detail ||
+      "Fout bij ophalen mail preview"
+    );
   }
-
-  // HTML tabelregels opbouwen
-  const rows = items
-    .map((it, idx) => `
-      <tr>
-        <td style="border:1px solid #000;padding:4px;text-align:center;">${idx + 1}</td>
-        <td style="border:1px solid #000;padding:4px;">${it.part_no}</td>
-        <td style="border:1px solid #000;padding:4px;">${it.description || ""}</td>
-        <td style="border:1px solid #000;padding:4px;text-align:center;">${it.qty}</td>
-        <td style="border:1px solid #000;padding:4px;text-align:right;">${it.price_bruto ?? ""}</td>
-        <td style="border:1px solid #000;padding:4px;"></td>
-        <td style="border:1px solid #000;padding:4px;"></td>
-      </tr>
-    `)
-    .join("");
-
-  const htmlBody = `
-Dear ${SULLAIR_CONTACT_NAME},<br><br>
-
-We kindly request, with SO no.: <b>${form.so}</b>, the leadtimes for the following items:<br><br>
-
-<table style="border-collapse:collapse;">
-  <tr>
-    <th style="border:1px solid #000;padding:4px;">Item</th>
-    <th style="border:1px solid #000;padding:4px;">Part No.</th>
-    <th style="border:1px solid #000;padding:4px;">Description</th>
-    <th style="border:1px solid #000;padding:4px;">QTY</th>
-    <th style="border:1px solid #000;padding:4px;">Price Each</th>
-    <th style="border:1px solid #000;padding:4px;">Leadtime NL</th>
-    <th style="border:1px solid #000;padding:4px;">Comments</th>
-  </tr>
-  ${rows}
-</table>
-
-<br>
-Kind regards,<br><br>
-Maconet B.V.
-`;
-
-  const subject = `Leadtime request service order ${form.so}`;
-
-  const mailto =
-    `mailto:${SULLAIR_CONTACT_EMAIL}` +
-    `?subject=${encodeURIComponent(subject)}` +
-    `&body=${encodeURIComponent(htmlBody)}`;
-
-  window.location.href = mailto;
 }
 
-function generateSullairRequestEML() {
+async function sendMail() {
+  if (!mailPreview) return;
 
-  if (!form.so) {
-    alert("Geen serviceorder ingevuld");
-    return;
+  try {
+    await axios.post(
+      `${API}/mail/send`,
+      {
+        to: mailPreview.to,
+        subject: mailPreview.subject,
+        body_html: mailPreview.body_html,
+      },
+      {
+        headers: {
+          "x-api-key": "CHANGE_ME",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    setShowMailModal(false);
+    alert("Mail verzonden ✔");
+  } catch (err) {
+    console.error(err);
+    alert("Verzenden mislukt ❌");
   }
-
-  if (!items.length) {
-    alert("Geen artikelen in de serviceorder");
-    return;
-  }
-
-  const sullairEmail = "orders@sullair.com";
-  const sullairName = "John Doe";
-
-  // HTML BODY
-  const htmlBody = `
-<html>
-<body>
-Dear ${sullairName},<br><br>
-
-We kindly request, with SO no.: <b>${form.so}</b>, the leadtimes for the following items:<br><br>
-
-<table style="border-collapse:collapse;">
-<tr>
-<th style="border:1px solid #000;padding:4px;">Item</th>
-<th style="border:1px solid #000;padding:4px;">Part No.</th>
-<th style="border:1px solid #000;padding:4px;">Description</th>
-<th style="border:1px solid #000;padding:4px;">QTY</th>
-<th style="border:1px solid #000;padding:4px;">Price Each</th>
-<th style="border:1px solid #000;padding:4px;">Leadtime NL</th>
-<th style="border:1px solid #000;padding:4px;">Comments</th>
-</tr>
-
-${items.map((it, idx) => `
-<tr>
-<td style="border:1px solid #000;padding:4px;text-align:center;">${idx + 1}</td>
-<td style="border:1px solid #000;padding:4px;">${it.part_no}</td>
-<td style="border:1px solid #000;padding:4px;">${it.description || ""}</td>
-<td style="border:1px solid #000;padding:4px;text-align:center;">${it.qty}</td>
-<td style="border:1px solid #000;padding:4px;text-align:right;">${it.price_bruto || ""}</td>
-<td style="border:1px solid #000;padding:4px;"></td>
-<td style="border:1px solid #000;padding:4px;"></td>
-</tr>
-`).join("")}
-
-</table>
-
-<br>
-Kind regards,<br><br>
-
-Maconet B.V.<br>
-
-</body>
-</html>
-  `;
-
-  // required CRLF
-  function crlf(str) {
-    return str.replace(/\n/g, "\r\n");
-  }
-
-  // EML STRUCTURE — Outlook Friendly
-  const eml =
-`To: ${sullairEmail}
-From: Maconet B.V. <no-reply@maconet.local>
-Subject: Leadtime request service order ${form.so}
-MIME-Version: 1.0
-Content-Type: text/html; charset=UTF-8
-Date: ${new Date().toUTCString()}
-
-${htmlBody}`;
-
-  const blob = new Blob([crlf(eml)], { type: "message/rfc822" });
-
-  // 👉 On Windows + Outlook this OPENS a draft email
-  const url = URL.createObjectURL(blob);
-  window.location.href = url;
-
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
-
 
 
   // ============================
@@ -512,10 +437,10 @@ ${htmlBody}`;
                     <td className="border p-1">{it.part_no}</td>
                     <td className="border p-1">{it.description}</td>
 
-                    <td className="border p-1">
+                    <td className="border p-1 text-center">
                       <input
                         type="number"
-                        value={it.qty}
+                        value={formatQty(it.qty)}
                         onChange={e => {
                           const qty = Number(e.target.value);
                           setItems(prev => {
@@ -527,9 +452,9 @@ ${htmlBody}`;
                       />
                     </td>
 
-                    <td className="border p-1">{it.price_bruto}</td>
-                    <td className="border p-1">{it.price_wvk}</td>
-                    <td className="border p-1">{it.price_edmac}</td>
+                    <td className="border p-1 text-right">{formatCurrency(it.price_bruto)}</td>
+                    <td className="border p-1 text-right">{formatCurrency(it.price_wvk)}</td>
+                    <td className="border p-1 text-right">{formatCurrency(it.price_edmac)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -543,22 +468,92 @@ ${htmlBody}`;
             </button>
 
             <button
-              className="mt-3 px-6 py-2 bg-blue-700 text-white rounded"
-              onClick={prepareSullairRequestEmail}
+              className="mt-4 px-6 py-2 bg-blue-700 text-white rounded"
+              onClick={openSullairMailPreview}
             >
-              Aanvraag bij Sullair voorbereiden
+              Aanvraag bij Sullair
+            </button>
+
+
+            
+          </div>
+        )}
+
+         {/* ===== MAIL MODAL ===== */}
+    {showMailModal && mailPreview && (
+      <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
+        <div className="bg-white w-3/4 max-w-4xl p-6 rounded shadow">
+
+          <h2 className="text-xl font-bold mb-4">
+            Mail aan Sullair (concept)
+          </h2>
+
+          <div className="mb-2">
+            <b>Aan:</b> {mailPreview.to}
+          </div>
+
+          <div className="mb-2">
+            <b>Onderwerp:</b>
+            <input
+              className="w-full border p-2"
+              value={mailPreview.subject}
+              onChange={(e) =>
+                setMailPreview({
+                  ...mailPreview,
+                  subject: e.target.value,
+                })
+              }
+            />
+          </div>
+
+          <div className="mt-2">
+
+             {editMode ? (
+              <textarea
+                className="w-full h-64 border p-2 font-mono text-sm"
+                  value={mailPreview.body_html}
+                  onChange={(e) =>
+                  setMailPreview({ ...mailPreview, body_html: e.target.value })
+              }
+              />
+            ) : (
+              <div className="border rounded p-3 bg-white max-h-64 overflow-auto">
+                <div
+                  dangerouslySetInnerHTML={{ __html: mailPreview.body_html }}
+                />
+              </div>
+            )}
+
+          </div>
+
+
+
+          <div className="flex justify-end gap-3 mt-4">
+            <button
+              className="px-4 py-2 bg-gray-400 text-white rounded"
+              onClick={() => setShowMailModal(false)}
+            >
+              Annuleren
             </button>
 
             <button
-              onClick={generateSullairRequestEML}
-              className="mt-3 px-6 py-2 bg-purple-700 text-white rounded"
+              className="px-4 py-2 bg-green-600 text-white rounded"
+              onClick={sendMail}
             >
-              Aanvraag Sullair (leadtime)
+              Verzenden
             </button>
 
+            <button
+              className="text-sm text-blue-700 underline"
+              onClick={() => setEditMode(!editMode)}
+            >
+              {editMode ? "Voorbeeld tonen" : "Tekst bewerken"}
+            </button>
 
           </div>
-        )}
+        </div>
+      </div>
+    )}
 
       </div>
     </div>

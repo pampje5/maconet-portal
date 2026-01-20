@@ -24,10 +24,10 @@ def import_duallist():
         part_no = row[0].value
         description = row[1].value
         list_price = row[2].value
-        price_bruto = row[3].value
-        price_wvk = row[4].value
-        price_edmac = row[5].value
-        price_purchase = row[6].value
+        price_bruto = row[4].value
+        price_wvk = row[5].value
+        price_edmac = row[6].value
+        price_purchase = row[3].value
 
         if not part_no:
             continue

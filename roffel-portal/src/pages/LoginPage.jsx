@@ -36,7 +36,7 @@ export default function LoginPage() {
       <div className="bg-white p-10 rounded-2xl shadow-xl w-full max-w-md">
 
         <h1 className="text-2xl font-bold mb-6 text-center">
-          Roffel Portal — Login
+          Maconet Portal — Login
         </h1>
 
         {error && (

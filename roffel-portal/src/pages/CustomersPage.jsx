@@ -179,71 +179,63 @@ export default function CustomersPage() {
   // ======================
 
   return (
-    <div className="min-h-screen p-8 bg-gray-100">
+  <div className="min-h-screen p-8 bg-gray-100">
+    <h1 className="text-2xl font-bold mb-6">Klantenbeheer</h1>
 
-      <h1 className="text-2xl font-bold mb-6">
-        Klantenbeheer
-      </h1>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* ------------------- LINKS: NIEUWE KLANT ------------------- */}
+      <div className="bg-white p-6 rounded-2xl shadow">
+        <h2 className="font-semibold mb-3">Nieuwe klant</h2>
 
-        {/* ------------------- LINKS: NIEUWE KLANT ------------------- */}
-        <div className="bg-white p-6 rounded-2xl shadow">
-          <h2 className="font-semibold mb-3">Nieuwe klant</h2>
+        <input
+          className="w-full border rounded px-3 py-2 mb-3"
+          placeholder="Klantnaam"
+          value={newCustomer.name}
+          onChange={(e) =>
+            setNewCustomer({ ...newCustomer, name: e.target.value })
+          }
+        />
 
-          <input
-            className="w-full border rounded px-3 py-2 mb-3"
-            placeholder="Klantnaam"
-            value={newCustomer.name}
-            onChange={(e) =>
-              setNewCustomer({ ...newCustomer, name: e.target.value })
-            }
-          />
+        <button
+          onClick={createCustomer}
+          className="w-full bg-green-600 text-white rounded py-2"
+        >
+          Klant toevoegen
+        </button>
+      </div>
 
+      {/* ------------------- MIDDEN: SELECTEER KLANT + INSTELLINGEN ------------------- */}
+      <div className="bg-white p-6 rounded-2xl shadow space-y-4">
+        <h2 className="font-semibold">Selecteer klant</h2>
 
-          <button
-            onClick={createCustomer}
-            className="w-full bg-green-600 text-white rounded py-2"
-          >
-            Klant toevoegen
-          </button>
-        </div>
+        <select
+          className="w-full border rounded px-3 py-2"
+          value={selectedCustomer?.id || ""}
+          onChange={(e) => handleSelect(e.target.value)}
+        >
+          <option value="">-- kies klant --</option>
+          {customers.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
 
-        {/* ------------------- MIDDEN: SELECTEER KLANT ------------------- */}
-        <div className="bg-white p-6 rounded-2xl shadow">
-
-          <h2 className="font-semibold mb-3">Selecteer klant</h2>
-
-          <select
-            className="w-full border rounded px-3 py-2"
-            onChange={(e) => handleSelect(e.target.value)}
-          >
-            <option value="">-- kies klant --</option>
-
-            {customers.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-
-          {selectedCustomer && (
+        {selectedCustomer && (
+          <>
             <button
-              className="mt-4 bg-red-600 text-white rounded px-4 py-2"
+              className="bg-red-600 text-white rounded px-4 py-2"
               onClick={deleteCustomer}
             >
               Klant verwijderen
             </button>
-          )}
-        </div>
 
-        {/* ------------------- RECHTS: INSTELLINGEN & CONTACTEN ------------------- */}
-        {selectedCustomer && (
-          <div className="bg-white p-6 rounded-2xl shadow space-y-6">
+            <hr />
 
-            {/* klantinstellingen */}
+            {/* KLANTINSTELLINGEN */}
             <div>
-              <h2 className="font-semibold mb-2">Klantinstellingen</h2>
+              <h3 className="font-semibold mb-2">Klantinstellingen</h3>
 
               <input
                 className="w-full border rounded px-3 py-2 mb-2"
@@ -266,8 +258,7 @@ export default function CustomersPage() {
                   })
                 }
               >
-                <option value="">-- prijs type --</option>
-                <option value="LIST">LIST</option>
+                <option value="">-- basis prijstype --</option>
                 <option value="BRUTO">BRUTO</option>
                 <option value="WVK">WVK</option>
                 <option value="EDMAC">EDMAC</option>
@@ -280,119 +271,129 @@ export default function CustomersPage() {
                 Opslaan
               </button>
             </div>
-
-            <hr />
-
-            {/* contactpersonen */}
-            <div>
-              <h2 className="font-semibold mb-2">Contactpersonen</h2>
-
-              {contacts.map((ct) => (
-                <div key={ct.id} className="border rounded p-2 mb-1">
-
-                  {editingContactId === ct.id ? (
-                    <>
-                      <input
-                        className="w-full border rounded px-2 py-1 mb-1"
-                        value={editContact.contact_name}
-                        onChange={(e) =>
-                          setEditContact({ ...editContact, contact_name: e.target.value })
-                        }
-                      />
-
-                      <input
-                        className="w-full border rounded px-2 py-1 mb-1"
-                        value={editContact.email}
-                        onChange={(e) =>
-                          setEditContact({ ...editContact, email: e.target.value })
-                        }
-                      />
-
-                      <button
-                        className="bg-green-600 text-white px-3 py-1 rounded mr-2"
-                        onClick={() => saveEditedContact(ct.id)}
-                      >
-                        Opslaan
-                      </button>
-
-                      <button
-                        className="bg-gray-400 text-white px-3 py-1 rounded"
-                        onClick={() => setEditingContactId(null)}
-                      >
-                        Annuleer
-                      </button>
-                    </>
-                  ) : (
-                    <div className="flex justify-between">
-
-                      <span>
-                        {ct.contact_name} — {ct.email}
-                        {ct.is_primary ? " ⭐" : ""}
-                      </span>
-
-                      <div className="space-x-3 flex items-center">
-
-                        {!ct.is_primary && (
-                          <button
-                            className="text-yellow-600"
-                            onClick={() => setPrimaryContact(ct.id)}
-                          >
-                            ⭐ maak primair
-                          </button>
-                        )}
-                        
-                        <button
-                          className="text-blue-700"
-                          onClick={() => {
-                            setEditingContactId(ct.id);
-                            setEditContact(ct);
-                          }}
-                        >
-                          ✎
-                        </button>
-
-                        <button
-                          className="text-red-600"
-                          onClick={() => removeContact(ct.id)}
-                        >
-                         ✖
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                </div>
-              ))}
-
-
-              <input
-                className="w-full border rounded px-3 py-2 mt-2"
-                placeholder="Naam"
-                value={newContact.contact_name}
-                onChange={(e) =>
-                  setNewContact({ ...newContact, contact_name: e.target.value })
-                }
-              />
-
-              <input
-                className="w-full border rounded px-3 py-2 mt-2"
-                placeholder="Email"
-                value={newContact.email}
-                onChange={(e) =>
-                  setNewContact({ ...newContact, email: e.target.value })
-                }
-              />
-
-              <button
-                onClick={addContact}
-                className="mt-2 bg-green-600 text-white rounded px-4 py-2"
-              >
-                Contact toevoegen
-              </button>
-            </div>
-          </div>
+          </>
         )}
       </div>
+
+      {/* ------------------- RECHTS: CONTACTPERSONEN ------------------- */}
+      {selectedCustomer ? (
+        <div className="bg-white p-6 rounded-2xl shadow">
+          <h2 className="font-semibold mb-3">Contactpersonen</h2>
+
+          {contacts.map((ct) => (
+            <div key={ct.id} className="border rounded p-2 mb-2">
+              {editingContactId === ct.id ? (
+                <>
+                  <input
+                    className="w-full border rounded px-2 py-1 mb-2"
+                    value={editContact.contact_name}
+                    onChange={(e) =>
+                      setEditContact({
+                        ...editContact,
+                        contact_name: e.target.value,
+                      })
+                    }
+                  />
+
+                  <input
+                    className="w-full border rounded px-2 py-1 mb-2"
+                    value={editContact.email}
+                    onChange={(e) =>
+                      setEditContact({ ...editContact, email: e.target.value })
+                    }
+                  />
+
+                  <div className="flex gap-2">
+                    <button
+                      className="bg-green-600 text-white px-3 py-1 rounded"
+                      onClick={() => saveEditedContact(ct.id)}
+                    >
+                      Opslaan
+                    </button>
+
+                    <button
+                      className="bg-gray-400 text-white px-3 py-1 rounded"
+                      onClick={() => setEditingContactId(null)}
+                    >
+                      Annuleer
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex justify-between items-center gap-3">
+                  <div className="min-w-0">
+                    <div className="font-medium truncate">
+                      {ct.contact_name} {ct.is_primary ? "⭐" : ""}
+                    </div>
+                    <div className="text-sm text-gray-600 truncate">{ct.email}</div>
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0">
+                    {!ct.is_primary && (
+                      <button
+                        className="text-yellow-700"
+                        onClick={() => setPrimaryContact(ct.id)}
+                        title="Maak primair"
+                      >
+                        ⭐
+                      </button>
+                    )}
+
+                    <button
+                      className="text-blue-700"
+                      onClick={() => {
+                        setEditingContactId(ct.id);
+                        setEditContact(ct);
+                      }}
+                      title="Bewerken"
+                    >
+                      ✎
+                    </button>
+
+                    <button
+                      className="text-red-600"
+                      onClick={() => removeContact(ct.id)}
+                      title="Verwijderen"
+                    >
+                      ✖
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* nieuw contact */}
+          <input
+            className="w-full border rounded px-3 py-2 mt-2"
+            placeholder="Naam"
+            value={newContact.contact_name}
+            onChange={(e) =>
+              setNewContact({ ...newContact, contact_name: e.target.value })
+            }
+          />
+
+          <input
+            className="w-full border rounded px-3 py-2 mt-2"
+            placeholder="Email"
+            value={newContact.email}
+            onChange={(e) =>
+              setNewContact({ ...newContact, email: e.target.value })
+            }
+          />
+
+          <button
+            onClick={addContact}
+            className="mt-3 bg-green-600 text-white rounded px-4 py-2"
+          >
+            Contact toevoegen
+          </button>
+        </div>
+      ) : (
+        // lege placeholder zodat grid netjes 3 kolommen blijft houden
+        <div />
+      )}
     </div>
-  );
+  </div>
+);
 }

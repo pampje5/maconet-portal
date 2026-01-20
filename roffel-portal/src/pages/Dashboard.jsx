@@ -35,7 +35,7 @@ export default function Dashboard() {
 
         {/* Serviceorder */}
         <Link
-          to="/serviceorder"
+          to="/serviceorder/new"
           className="p-6 bg-white rounded-2xl shadow hover:shadow-lg transition block"
         >
           <h2 className="text-xl font-semibold mb-2">Serviceorders</h2>
