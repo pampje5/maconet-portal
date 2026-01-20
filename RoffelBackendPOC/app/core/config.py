@@ -1,0 +1,4 @@
+# app/core/config.py
+API_KEY = "CHANGE_ME"
+JWT_SECRET = "CHANGE_ME_JWT_SECRET"
+JWT_ALG = "HS256"

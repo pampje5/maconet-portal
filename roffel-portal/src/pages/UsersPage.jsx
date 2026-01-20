@@ -1,0 +1,158 @@
+import { useEffect, useState } from "react";
+import axios from "axios";
+import toast from "react-hot-toast";
+import CreateUserModal from "../components/CreateUserModal";
+
+const API = "http://127.0.0.1:8000";
+
+
+export default function UsersPage() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [me, setMe] = useState(null)
+
+
+  async function loadUsers() {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`${API}/users`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setUsers(res.data);
+    } catch (err) {
+      toast.error("Gebruikers laden mislukt");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadMe() {
+    const token = localStorage.getItem("token");
+    const res = await axios.get(`${API}/auth/whoami`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setMe(res.data);
+  }
+
+
+  useEffect(() => {
+    loadUsers();
+    loadMe();
+  }, []);
+
+  if (loading) {
+    return <div className="p-8">Laden…</div>;
+  }
+
+  return (
+    <div className="p-8">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Gebruikers</h1>
+
+        <button
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg"
+          onClick={() => setShowCreate(true)}
+        >
+          + Nieuwe gebruiker
+        </button>
+      </div>
+
+      <div className="bg-white rounded-xl shadow">
+        <table className="w-full">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="p-3 text-left">Email</th>
+              <th className="p-3 text-left">Rol</th>
+              <th className="p-3 text-left">Acties</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((u) => (
+              <tr key={u.id} className="border-t">
+                <td className="p-3">{u.email}</td>
+                <td className="p-3">
+                  <select
+                    value={u.role}
+                    disabled={
+                      !me ||
+                      me.id === u.id ||              // jezelf niet
+                      (me.role === "admin" && u.role === "designer")
+                    }
+                    onChange={async (e) => {
+                      try {
+                        const token = localStorage.getItem("token");
+                        await axios.post(
+                          `${API}/users/${u.id}/set-role`,
+                          { role: e.target.value },
+                          {
+                            headers: {
+                              Authorization: `Bearer ${token}`,
+                            },
+                          }
+                        );
+                        toast.success("Rol aangepast");
+                        loadUsers();
+                      } catch {
+                        toast.error("Rol wijzigen mislukt");
+                      }
+                    }}
+                    className="border rounded px-2 py-1"
+                  >
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                    {me?.role === "designer" && (
+                      <option value="designer">Designer</option>
+                    )}
+                  </select>
+                </td>
+
+                <td className="p-3">
+                  {me &&
+                    me.id !== u.id &&
+                    me.role === "designer" &&
+                    (
+                      <button
+                        onClick={async () => {
+                          if (!window.confirm(`Gebruiker ${u.email} verwijderen?`)) return;
+
+                          try {
+                            const token = localStorage.getItem("token");
+                            await axios.delete(`${API}/users/${u.id}`, {
+                              headers: {
+                                Authorization: `Bearer ${token}`,
+                              },
+                            });
+                            toast.success("Gebruiker verwijderd");
+                            loadUsers();
+                          } catch {
+                            toast.error("Verwijderen mislukt");
+                          }
+                        }}
+                        className="text-red-600 hover:underline"
+                      >
+                        Verwijderen
+                      </button>
+                    )
+                  }
+                </td>
+
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {showCreate && (
+        <CreateUserModal
+          onClose={() => setShowCreate(false)}
+          onCreated={loadUsers}
+        />
+      )}
+
+
+    </div>
+  );
+}

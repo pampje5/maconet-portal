@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getMe } from "../utils/auth";
 
 import {
   Home,
@@ -16,6 +17,11 @@ export default function Sidebar() {
 
   const location = useLocation();
   const [openSO, setOpenSO] = useState(true);
+  const [me, setMe] = useState(null);
+
+  useEffect(() => {
+    getMe().then(setMe);
+  }, []);
 
   const linkBase =
     "flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer";
@@ -87,6 +93,8 @@ export default function Sidebar() {
       </div>
 
       {/* Instellingen */}
+      
+      {me && me.role !== "user" && (
       <Link
         to="/settings"
         className={`${linkBase} ${location.pathname === "/settings" ? active : inactive}`}
@@ -94,6 +102,7 @@ export default function Sidebar() {
         <Settings size={18} />
         Instellingen
       </Link>
+      )}
     </div>
   );
 }

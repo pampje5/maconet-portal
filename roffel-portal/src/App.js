@@ -11,15 +11,15 @@ import Layout from "./components/Layout";
 import Dashboard from "./pages/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ServiceOrderPage from "./pages/ServiceOrderPage";
+import ServiceOrdersPage from "./pages/ServiceOrdersPage";
+import ServiceOrderEditPage from "./pages/ServiceOrderEditPage.jsx";
 import CustomersPage from "./pages/CustomersPage";
 import SettingsPage from "./pages/SettingsPage";
 import SullairSettingsPage from "./pages/SullairSettingsPage";
+import UsersPage from "./pages/UsersPage";
+import ServiceOrderNumbers from "./pages/ServiceOrderNumbers.jsx";
 import { Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-
-function Placeholder({title}) {
-  return <h1 className="text-2xl">{title}</h1>
-}
 
 
 export default function App() {
@@ -63,7 +63,7 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Layout>
-                <Placeholder title={"Overzicht serviceorders"} />
+                <ServiceOrdersPage />
               </Layout>
             </ProtectedRoute>
           }
@@ -74,7 +74,29 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Layout>
-                <Placeholder title="Bestaande serviceorder bewerken" />
+                <ServiceOrderEditPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/serviceorder"
+          element={
+            <ProtectedRoute>
+              <Layout>
+              <ServiceOrderPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/serviceorder-numbers"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ServiceOrderNumbers/>
               </Layout>
             </ProtectedRoute>
           }
@@ -94,7 +116,7 @@ export default function App() {
         <Route
           path="/settings"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute minRole="admin">
               <Layout>
                 <SettingsPage />
               </Layout>
@@ -112,6 +134,18 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/settings/users"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <UsersPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
 
       </Routes>
       <Toaster position="bottom-right" />

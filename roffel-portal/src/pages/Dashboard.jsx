@@ -1,7 +1,17 @@
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { getMe } from "../utils/auth";
+
 
 export default function Dashboard() {
 
+  const [me, setMe] = useState(null);
+
+  useEffect(() => {
+    getMe().then(setMe);
+  }, []);
+
+  
   function logout() {
     localStorage.removeItem("token");
     window.location.href = "/login";
@@ -44,6 +54,18 @@ export default function Dashboard() {
           </p>
         </Link>
 
+        {/* Serviceorder Algemeen*/}
+
+        <Link
+          to="/serviceorder-numbers"
+          className="p-6 bg-white rounded-2xl shadow hover:shadow-lg transition block"
+          >
+            <h2 className="text-xl font-semibold mb-2">Serviceorders Algemeen</h2>
+            <p className="text-gray-600">
+              Algemene Serviceorders en werkplaatsnummers
+            </p>
+          </Link>
+          
         {/* Klantenbeheer */}
         <Link
           to="/customers"
@@ -56,6 +78,7 @@ export default function Dashboard() {
         </Link>
 
         {/* Instellingen */}
+       {me && me.role !== "user" && (
         <Link
           to="/settings"
           className="p-6 bg-white rounded-2xl shadow hover:shadow-lg transition block"
@@ -65,6 +88,8 @@ export default function Dashboard() {
             Portal- en Sullair instellingen
           </p>
         </Link>
+      )}
+
 
       </div>
 

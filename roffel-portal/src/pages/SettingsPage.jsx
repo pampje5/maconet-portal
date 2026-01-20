@@ -21,13 +21,19 @@ export default function SettingsPage() {
           </p>
         </Link>
 
-        {/* UITGEGRIJSDE TEGELS */}
-        <div className="p-6 bg-gray-200 rounded-2xl opacity-60">
+        <Link
+          to="/settings/users"
+          className="p-6 bg-white rounded-2xl shadow hover:shadow-lg transition block"
+        >
           <h2 className="text-xl font-semibold mb-2">Gebruikersbeheer</h2>
-          <p>Coming soon…</p>
-        </div>
+          <p className="text-gray-600">
+            Gebruikers en rollen beheren
+          </p>
+        </Link>
 
-        <div className="p-6 bg-gray-200 rounded-2xl opacity-60">
+
+        {/* UITGEGRIJSDE TEGELS */}
+          <div className="p-6 bg-gray-200 rounded-2xl opacity-60">
           <h2 className="text-xl font-semibold mb-2">Overige instellingen</h2>
           <p>Coming soon…</p>
         </div>

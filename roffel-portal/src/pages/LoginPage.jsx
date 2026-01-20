@@ -10,25 +10,33 @@ export default function LoginPage() {
   const [error, setError] = useState("");
 
   async function handleLogin(e) {
-    e.preventDefault();
+  e.preventDefault();
 
-    try {
-      setError("");
+  try {
+    setError("");
 
-      const res = await axios.post("http://127.0.0.1:8000/auth/login", {
-        email: email,
-        password: password,
-      });
+    const form = new URLSearchParams();
+    form.append("username", email);   // OAuth2 expects "username"
+    form.append("password", password);
 
-      // save JWT token
-      localStorage.setItem("token", res.data.access_token);
+    const res = await axios.post(
+      "http://127.0.0.1:8000/auth/login",
+      form,
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      }
+    );
 
-      navigate("/dashboard");
-    } catch (err) {
-      console.error(err);
-      setError("Login mislukt. Controleer e-mail en wachtwoord.");
-    }
+    localStorage.setItem("token", res.data.access_token);
+    navigate("/dashboard");
+  } catch (err) {
+    console.error(err);
+    setError("Login mislukt. Controleer e-mail en wachtwoord.");
   }
+}
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
