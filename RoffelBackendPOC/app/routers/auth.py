@@ -21,7 +21,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def read_me(user: User = Depends(get_current_user)):
     return {
         "email": user.email,
-        "is_admin": user.is_admin,
+        "role": user.role,
     }
 
 
@@ -38,6 +38,7 @@ def login(
     return {
         "access_token": token,
         "token_type": "bearer",
+        "role": user.role,
     }
 
 

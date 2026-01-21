@@ -15,7 +15,7 @@ from app.services.serviceorder_numbers import (
     confirm_serviceorder_number,
     cancel_serviceorder_number,
     )
-from app.core.security import get_current_user
+from app.core.security import get_current_user, require_min_role, UserRole
 
 router = APIRouter(prefix="/serviceorder-numbers", tags=["serviceorder-numbers"])
 
@@ -56,6 +56,7 @@ def reserve_batch(
 @router.post("/{so_number}/confirm")
 def confirm_so_number(
     so_number: str,
+    user= Depends(require_min_role(UserRole.user)),
     db: Session = Depends(get_db)
 ):
     confirm_serviceorder_number(db, so_number)
@@ -64,6 +65,7 @@ def confirm_so_number(
 @router.post("/{so_number}/cancel")
 def cancel_so_number(
     so_number: str,
+    user=Depends(require_min_role(UserRole.user)),
     db: Session = Depends(get_db)
 ):
     cancel_serviceorder_number(db, so_number)

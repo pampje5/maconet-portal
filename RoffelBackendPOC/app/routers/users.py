@@ -15,7 +15,7 @@ import secrets
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
-@router.post("/create")
+@router.post("/create", response_model=UserOut)
 def create_user(
     data: UserCreate,
     db: Session = Depends(get_db),
@@ -74,14 +74,14 @@ def delete_user(
             detail="You cannot delete yourself"
         )
 
-    # ❌ designer mag alleen door designer worden verwijderd
+    # ❌ developer mag alleen door developer worden verwijderd
     if (
-        user.role == UserRole.designer
-        and current_user.role != UserRole.designer
+        user.role == UserRole.developer
+        and current_user.role != UserRole.developer
     ):
         raise HTTPException(
             status_code=403,
-            detail="Only designer can delete a designer"
+            detail="Only developer can delete a developer"
         )
 
     db.delete(user)
@@ -117,6 +117,9 @@ def set_user_role(
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(404, "User not found")
+    
+    if user.id == current_user.id:
+        raise HTTPException(400, "You cannot change your own role")
 
     user.role = data.role
     db.commit()

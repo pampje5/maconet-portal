@@ -21,13 +21,13 @@ pwd_context = CryptContext(
 
 class UserRole(str, enum.Enum):
     user = "user"
-    designer = "designer"
     admin = "admin"
+    developer = "developer"
 
 ROLE_LEVEL = {
     UserRole.user: 1,
     UserRole.admin: 5,
-    UserRole.designer: 10,
+    UserRole.developer: 10,
 }
 
 def hash_password(password: str) -> str:

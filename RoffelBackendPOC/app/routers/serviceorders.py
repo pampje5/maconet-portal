@@ -48,7 +48,7 @@ router = APIRouter(
 def upsert_serviceorder(
     payload: ServiceOrderIn,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_min_role(UserRole.user)),
 ):
     existing = db.query(ServiceOrder).filter(ServiceOrder.so == payload.so).first()
 
@@ -106,7 +106,7 @@ def replace_items(
     so: str,
     items: List[ServiceOrderItemIn],
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_min_role(UserRole.user)),
 ):
     order = db.query(ServiceOrder).filter(ServiceOrder.so == so).first()
     if not order:
@@ -148,7 +148,7 @@ def receive_item(
     so: str,
     item_id: int,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_min_role(UserRole.user)),
 ):
     order = db.query(ServiceOrder).filter(ServiceOrder.so == so).first()
     if not order:
@@ -248,29 +248,11 @@ def packing_slip_internal(
         filename=f"PackingSlip_INTERNAL_{order.so}.pdf",
     )
 
-
-@router.get("/{so}/order/pdf")
-def get_stock_order_pdf(
-    so: str,
-    db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
-):
-    order = db.query(ServiceOrder).filter(ServiceOrder.so == so).first()
-    if not order:
-        raise HTTPException(404, "Serviceorder not found")
-
-    pdf_path = build_stock_order_pdf(db, order)
-    return FileResponse(
-        pdf_path,
-        media_type="application/pdf",
-        filename=f"StockOrder_{order.so}.pdf",
-    )
-
 @router.get("/mail/stock-order/pdf/{so}")
 def preview_stock_order_pdf(
     so: str,
     db: Session = Depends(get_db),
-    user: User = Depends(require_min_role(UserRole.user))
+    user: User = Depends(get_current_user)
 ):
     order = db.query(ServiceOrder).filter(ServiceOrder.so == so).first()
     if not order:
@@ -293,7 +275,7 @@ def preview_stock_order_pdf(
 def send_stock_order(
     so: str,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_min_role(UserRole.user)),
 ):
     order = db.query(ServiceOrder).filter(ServiceOrder.so == so).first()
     if not order:
@@ -324,7 +306,7 @@ def send_stock_order(
 def preview_sullair_leadtime_mail(
     so: str,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_min_role(UserRole.user)),
 ):
     return build_sullair_leadtime_mail(db, so)
 
@@ -335,7 +317,7 @@ def preview_sullair_leadtime_mail(
 def preview_offer_mail(
     so: str,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_min_role(UserRole.user)),
 ):
     return build_offer_mail(db, so)
 
@@ -346,7 +328,7 @@ def preview_offer_mail(
 def preview_order_confirmation_mail(
     so: str,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_min_role(UserRole.user)),
 ):
     return build_order_confirmation_mail(db, so)
 
@@ -440,8 +422,12 @@ def preview_stock_order(
 def mark_offer_sent(
     so: str,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_min_role(UserRole.user)),
 ):
+    order = db.query(ServiceOrder).filter(ServiceOrder.so == so).first()
+    if not order:
+        raise HTTPException(404, "Serviceorder not found")
+    
     set_order_status(
         db,
         order=db.query(ServiceOrder).filter(ServiceOrder.so == so).first(),
@@ -455,8 +441,12 @@ def mark_offer_sent(
 def mark_order_confirmation_sent(
     so: str,
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_min_role(UserRole.user)),
 ):
+    order = db.query(ServiceOrder).filter(ServiceOrder.so == so).first()
+    if not order:
+        raise HTTPException(404, "Serviceorder not found")
+    
     set_order_status(
         db,
         order=db.query(ServiceOrder).filter(ServiceOrder.so == so).first(),

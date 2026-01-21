@@ -3,8 +3,8 @@ from enum import Enum
 
 class UserRoleEnum (str, Enum):
     user = "user"
-    designer = "designer"
     admin = "admin"
+    developer = "developer"
     
 class UserCreate(BaseModel):
     email: EmailStr
