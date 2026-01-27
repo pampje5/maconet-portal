@@ -2,6 +2,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+app = FastAPI(title="Roffel Backend API")
+
 from app.routers import (
     health,
     auth,
@@ -20,7 +22,7 @@ from app.routers import (
     purchaseorder_numbers,
 )
 
-app = FastAPI(title="Roffel Backend API")
+
 
 app.add_middleware(
     CORSMiddleware,
