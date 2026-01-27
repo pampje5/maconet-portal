@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="Roffel Backend API")
 
-from app.db.session import SessionLocal
+from app.database import SessionLocal
 from app.core.bootstrap import create_initial_admin
 
 from app.routers import (

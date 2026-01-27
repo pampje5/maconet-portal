@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from app.models.user import User
-from app.core.security import get_password_hash
+from app.core.security import hash_password
 
 def create_initial_admin(db: Session):
     user_exists = db.query(User).first()
@@ -9,7 +9,7 @@ def create_initial_admin(db: Session):
 
     admin = User(
         email=os.getenv("INITIAL_ADMIN_EMAIL"),
-        hashed_password=get_password_hash(
+        hashed_password=hash_password(
             os.getenv("INITIAL_ADMIN_PASSWORD")
         ),
         role="developer",
