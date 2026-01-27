@@ -2,7 +2,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+
 app = FastAPI(title="Roffel Backend API")
+
+from app.db.session import SessionLocal
+from app.core.bootstrap import create_initial_admin
 
 from app.routers import (
     health,
@@ -21,8 +25,6 @@ from app.routers import (
     suppliers,
     purchaseorder_numbers,
 )
-
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -48,3 +50,11 @@ app.include_router(sullair_settings.router)
 app.include_router(articles.router)
 app.include_router(suppliers.router)
 app.include_router(purchaseorder_numbers.router)
+
+@app.on_event("startup")
+def startup_event():
+    db = SessionLocal()
+    try:
+        create_initial_admin(db)
+    finally:
+        db.close()

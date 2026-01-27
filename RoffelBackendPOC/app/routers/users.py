@@ -11,7 +11,9 @@ from app.core.security import (
     require_min_role,
     UserRole,
 )
+from app.core.mail import send_email
 import secrets
+import os
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -43,13 +45,32 @@ def create_user(
     db.commit()
     db.refresh(user)
 
-    # 📧 voorlopig console output (later mail)
-    print("=== NEW USER CREATED ===")
-    print("Email:", user.email)
-    print("Temporary password:", temp_password)
-    print("Reset link:")
-    print(f"http://localhost:3000/reset-password/{reset_token}")
-    print("========================")
+    reset_url = f"{os.getenv('FRONTEND_URL')}/reset-password/{reset_token}"
+
+    send_email(
+        to=user.email,
+        subject="Je account voor het portal",
+        html=f"""
+        <h2>Welkom</h2>
+        <p>Er is een account voor je aangemaakt.</p>
+
+        <p>
+        <strong>Gebruikersnaam:</strong> {user.email}<br/>
+        <strong>Tijdelijk wachtwoord:</strong> {temp_password}
+        </p>
+
+        <p>
+        <a href="{reset_url}">
+            Klik hier om je wachtwoord te wijzigen
+        </a>
+        <br/>
+        (geldig tot {user.reset_expires.strftime('%d-%m-%Y %H:%M')} UTC)
+        </p>
+
+        <p>Wijzig je wachtwoord direct na het inloggen.</p>
+        """,
+    )
+
 
     return {
         "id": user.id,

@@ -2,6 +2,7 @@ import { useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getMe } from "../utils/auth";
 import { useNavigationGuard } from "../context/NavigationGuardContext";
+import FEATURES from "../config/features";
 
 import {
   Home,
@@ -20,6 +21,7 @@ export default function Sidebar() {
   const [openSO, setOpenSO] = useState(true);
   const [me, setMe] = useState(null);
   const { guardedNavigate } = useNavigationGuard()
+  
 
   useEffect(() => {
     getMe().then(setMe);
@@ -55,6 +57,15 @@ export default function Sidebar() {
       >
         <List size={18} />
         Serviceorder algemeen
+      </div>
+
+      {/* Inkooporder algemeen */}
+      <div
+        className={`${linkBase} ${location.pathname === "/purchaseorderpage" ? active : inactive}`}
+        onClick={() => guardedNavigate("/purchaseorderpage")}
+      >
+        <List size={18} />
+        Inkooporder Algemeen
       </div>
 
      {/* Serviceorder blok */}
@@ -109,6 +120,18 @@ export default function Sidebar() {
               <Edit size={16} />
               Bewerken
             </div>
+
+            {FEATURES.COMBINE_SERVICEORDERS &&(
+            <div
+              className={`${linkBase} ${
+                location.pathname === "/combineserviceorders" ? active : inactive
+              }`}
+              onClick={() => guardedNavigate("/combineserviceorders")}
+            >
+              <List size={16} />
+              Combineer serviceorders
+            </div>
+            )}
 
           </div>
         )}

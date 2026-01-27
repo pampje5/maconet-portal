@@ -1,0 +1,5 @@
+// src/config/features.js
+ const FEATURES = {
+  COMBINE_SERVICEORDERS: false,
+};
+export default FEATURES;
