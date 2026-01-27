@@ -30,12 +30,17 @@ export default function UsersPage() {
   }
 
   async function loadMe() {
+  try {
     const token = localStorage.getItem("token");
     const res = await axios.get(`${API}/auth/whoami`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     setMe(res.data);
+  } catch {
+    setMe(null);
   }
+}
+
 
 
   useEffect(() => {
@@ -52,12 +57,14 @@ export default function UsersPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Gebruikers</h1>
 
+      {me?.role !== "user" && (
         <button
           className="px-4 py-2 bg-blue-600 text-white rounded-lg"
           onClick={() => setShowCreate(true)}
         >
           + Nieuwe gebruiker
         </button>
+      )}
       </div>
 
       <div className="bg-white rounded-xl shadow">
@@ -79,7 +86,7 @@ export default function UsersPage() {
                     disabled={
                       !me ||
                       me.id === u.id ||              // jezelf niet
-                      (me.role === "admin" && u.role === "designer")
+                      (me.role === "admin" && u.role === "developer")
                     }
                     onChange={async (e) => {
                       try {
@@ -103,8 +110,8 @@ export default function UsersPage() {
                   >
                     <option value="user">User</option>
                     <option value="admin">Admin</option>
-                    {me?.role === "designer" && (
-                      <option value="designer">Designer</option>
+                    {me?.role === "developer" && (
+                      <option value="developer">developer</option>
                     )}
                   </select>
                 </td>
@@ -112,7 +119,7 @@ export default function UsersPage() {
                 <td className="p-3">
                   {me &&
                     me.id !== u.id &&
-                    me.role === "designer" &&
+                    me.role === "developer" &&
                     (
                       <button
                         onClick={async () => {

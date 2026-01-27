@@ -103,7 +103,7 @@ def build_offer_mail(db: Session, so: str):
     ).all()
 
     customer = db.query(Customer).filter(
-        Customer.name == order.supplier
+        Customer.id == order.customer_id
     ).first()
     if not customer:
         raise HTTPException(400, "Customer not found")
@@ -199,7 +199,7 @@ def build_order_confirmation_mail(db: Session, so: str):
         raise HTTPException(400, "No items marked for ordering")
 
     customer = db.query(Customer).filter(
-        Customer.name == order.supplier
+        Customer.name == order.customer.name
     ).first()
     if not customer:
         raise HTTPException(400, "Customer not found")

@@ -77,6 +77,12 @@ def reserve_next_serviceorder_number(
 def confirm_serviceorder_number(
     db: Session,
     so_number: str,
+    supplier_id: int | None = None,
+    supplier_name_free: str | None = None,
+    customer_id: int | None = None,
+    customer_name_free: str | None = None,
+    description: str | None = None,
+    type: str | None = None,
 ):
     rec = (
         db.query(ServiceOrderNumber)
@@ -90,11 +96,23 @@ def confirm_serviceorder_number(
     if rec.status != ServiceOrderNrStatus.RESERVED:
         raise HTTPException(400, "Only RESERVED numbers can be confirmed")
 
+    # 🔗 Relaties
+    rec.supplier_id = supplier_id
+    rec.supplier_name_free = supplier_name_free
+
+    rec.customer_id = customer_id
+    rec.customer_name_free = customer_name_free
+
+    # 📝 Inhoud
+    rec.description = description
+    rec.type = type
+
     rec.status = ServiceOrderNrStatus.CONFIRMED
     rec.confirmed_at = datetime.utcnow()
 
     db.commit()
     return rec
+
 
 
 def cancel_serviceorder_number(

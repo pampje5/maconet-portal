@@ -13,6 +13,28 @@ export default function ServiceOrdersPage() {
     loadOrders();
   }, []);
 
+  function statusBadge(status) {
+  const map = {
+    OPEN: "bg-blue-100 text-blue-800",
+    AANGEVRAAGD: "bg-yellow-100 text-yellow-800",
+    OFFERTE: "bg-purple-100 text-purple-800",
+    BESTELD: "bg-orange-100 text-orange-800",
+    ONTVANGEN: "bg-green-100 text-green-800",
+    AFGEHANDELD: "bg-gray-200 text-gray-800",
+  };
+
+  return (
+    <span
+      className={`px-2 py-1 rounded text-xs font-semibold ${
+        map[status] || "bg-gray-100 text-gray-700"
+      }`}
+    >
+      {status}
+    </span>
+  );
+}
+
+
   async function loadOrders() {
     try {
       const res = await axios.get(`${API}/serviceorders/overview`, {
@@ -39,33 +61,42 @@ export default function ServiceOrdersPage() {
               <th className="border p-2">SO</th>
               <th className="border p-2">Klant</th>
               <th className="border p-2">PO</th>
-              <th className="border p-2">Status</th>
               <th className="border p-2">Datum</th>
-              <th className="border p-2"></th>
+              <th className="border p-2 text-center">Status</th>
             </tr>
           </thead>
 
           <tbody>
             {orders.map((o) => (
-              <tr key={o.so} className="hover:bg-gray-50">
-                <td className="border p-2">{o.so}</td>
-                <td className="border p-2">{o.supplier}</td>
-                <td className="border p-2">{o.po}</td>
-                <td className="border p-2">{o.status}</td>
+              <tr
+                key={o.so}
+                className="hover:bg-blue-50 cursor-pointer"
+                onClick={() => navigate(`/serviceorder?so=${o.so}`)}
+                title="Klik om serviceorder te openen"
+              >
+                <td className="border p-2 font-mono font-semibold">
+                  {o.so}
+                </td>
+
+                <td className="border p-2">
+                  {o.customer_name || o.customer_id || "—"}
+                </td>
+
+                <td className="border p-2">
+                  {o.po || "—"}
+                </td>
+
                 <td className="border p-2">
                   {new Date(o.created_at).toLocaleDateString()}
                 </td>
+
                 <td className="border p-2 text-center">
-                  <button
-                    className="px-3 py-1 bg-blue-600 text-white rounded"
-                    onClick={() => navigate(`/serviceorder?so=${o.so}`)}
-                  >
-                    Open
-                  </button>
+                  {statusBadge(o.status)}
                 </td>
               </tr>
             ))}
           </tbody>
+
         </table>
       </div>
     </div>

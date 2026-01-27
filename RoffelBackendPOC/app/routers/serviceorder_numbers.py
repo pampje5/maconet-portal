@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
+from datetime import datetime
+
 
 
 from app.database import get_db
@@ -9,7 +11,10 @@ from app.schemas.serviceorder_number import (
     ServiceOrderNumberOut,
     ServiceOrderNumberUpdate,
     ServiceOrderNumberReserveOut,
+    ServiceOrderNumberListOut,
+    ServiceOrderNrStatusEnum
 )
+
 from app.services.serviceorder_numbers import ( 
     reserve_next_serviceorder_number,
     confirm_serviceorder_number,
@@ -53,14 +58,38 @@ def reserve_batch(
         "numbers": numbers
     }
 
-@router.post("/{so_number}/confirm")
-def confirm_so_number(
+@router.post(
+    "/{so_number}/confirm",
+    response_model=ServiceOrderNumberOut,
+)
+def confirm_serviceorder_number(
     so_number: str,
-    user= Depends(require_min_role(UserRole.user)),
-    db: Session = Depends(get_db)
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    confirm_serviceorder_number(db, so_number)
-    return {"status": "confirmed"}
+    rec = (
+        db.query(ServiceOrderNumber)
+        .filter(ServiceOrderNumber.so_number == so_number)
+        .first()
+    )
+
+    if not rec:
+        raise HTTPException(404, "Service order number not found")
+
+    if rec.status != ServiceOrderNrStatusEnum.RESERVED:
+        raise HTTPException(
+            status_code=400,
+            detail="Only RESERVED numbers can be confirmed"
+        )
+
+    rec.status = ServiceOrderNrStatusEnum.CONFIRMED
+    rec.confirmed_at = datetime.utcnow()
+
+    db.commit()
+    db.refresh(rec)
+
+    return rec
+
 
 @router.post("/{so_number}/cancel")
 def cancel_so_number(
@@ -74,47 +103,72 @@ def cancel_so_number(
 
 @router.get(
     "",
-    response_model=List[ServiceOrderNumberOut],
+    response_model=list[ServiceOrderNumberListOut],
 )
 def list_serviceorder_numbers(
-    year: Optional[int] = Query(None),
-    month: Optional[int] = Query(None, ge=1, le=12),
-    quarter: Optional[int] = Query(None, ge=1, le=4),
-    status: Optional[ServiceOrderNrStatus] = Query(None),
-
-    user=Depends(get_current_user),
+    year: int | None = None,
+    month: int | None = None,
+    quarter: int | None = None,
+    status: ServiceOrderNrStatus | None = None,
     db: Session = Depends(get_db),
+    user=Depends(get_current_user),
 ):
-    query = db.query(ServiceOrderNumber)
+    query = (
+        db.query(ServiceOrderNumber)
+    )
 
-    # 🔹 jaarfilter
-    if year is not None:
+    if year:
         query = query.filter(ServiceOrderNumber.year == year)
 
-    # 🔹 maandfilter
-    if month is not None:
+    if month:
         query = query.filter(ServiceOrderNumber.month == month)
 
-    # 🔹 kwartaalfilter (overrulet maand als beide gezet zijn)
-    if quarter is not None:
-        start_month = (quarter - 1) * 3 + 1
-        end_month = start_month + 2
-        query = query.filter(
-            ServiceOrderNumber.month.between(start_month, end_month)
-        )
+    if quarter:
+        start = (quarter - 1) * 3 + 1
+        end = start + 2
+        query = query.filter(ServiceOrderNumber.month.between(start, end))
 
-    # 🔹 statusfilter
-    if status is not None:
+    if status:
         query = query.filter(ServiceOrderNumber.status == status)
 
-    return (
+    records = (
         query
         .order_by(
             ServiceOrderNumber.year.desc(),
-            ServiceOrderNumber.sequence.desc()
+            ServiceOrderNumber.sequence.desc(),
         )
         .all()
     )
+
+    # 🔁 EXPLICIETE mapping → geen magic
+    return [
+        ServiceOrderNumberListOut(
+            id=r.id,
+            so_number=r.so_number,
+            year=r.year,
+            month=r.month,
+            sequence=r.sequence,
+            date=r.date,
+
+            supplier_id=r.supplier_id,
+            customer_id=r.customer_id,
+
+            supplier_name=(r.supplier_name_free),
+            customer_name=(r.customer_name_free),
+
+            description=r.description,
+            type=r.type,
+
+            offer=r.offer,
+            offer_amount=r.offer_amount,
+
+            status=r.status,
+            reserved_by=r.reserved_by,
+            reserved_at=r.reserved_at,
+            confirmed_at=r.confirmed_at,
+        )
+        for r in records
+    ]
 
 @router.put(
     "/{so_number}",
@@ -148,5 +202,25 @@ def update_serviceorder_number(
 
     db.commit()
     db.refresh(rec)
+
+    return rec
+
+@router.get(
+    "/{so_number}",
+    response_model=ServiceOrderNumberOut,
+)
+def get_serviceorder_number(
+    so_number: str,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    rec = (
+        db.query(ServiceOrderNumber)
+        .filter(ServiceOrderNumber.so_number == so_number)
+        .first()
+    )
+
+    if not rec:
+        raise HTTPException(404, "Service order number not found")
 
     return rec

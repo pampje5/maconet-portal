@@ -18,6 +18,7 @@ import SettingsPage from "./pages/SettingsPage";
 import SullairSettingsPage from "./pages/SullairSettingsPage";
 import UsersPage from "./pages/UsersPage";
 import ServiceOrderNumbers from "./pages/ServiceOrderNumbers.jsx";
+import PurchaseOrdersPage from "./pages/PurchaseOrderPage.jsx";
 import { Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
@@ -86,6 +87,17 @@ export default function App() {
             <ProtectedRoute>
               <Layout>
               <ServiceOrderPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/purchaseorderpage"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <PurchaseOrdersPage/>
               </Layout>
             </ProtectedRoute>
           }

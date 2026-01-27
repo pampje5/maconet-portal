@@ -79,7 +79,7 @@ def calculate_order_totals(
 
     customer = (
         db.query(Customer)
-        .filter(Customer.name == order.supplier)
+        .filter(Customer.name == order.customer.name)
         .first()
     )
 

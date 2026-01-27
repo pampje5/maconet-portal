@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
-
+import ActionBar from "../components/ActionBar";
+import Button from "../components/ui/Button";
 
 
 
@@ -21,9 +22,9 @@ export default function ServiceOrderNumbers() {
   // =========================
   const [filters, setFilters] = useState({
     year: currentYear,
-    month: null,
-    quarter: null,
-    status: null,
+    month: "",
+    quarter: "",
+    status: "",
   });
 
   const [rows, setRows] = useState([]);
@@ -31,6 +32,8 @@ export default function ServiceOrderNumbers() {
 
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState({});
+
+  const [showEditModal, setShowEditModal] = useState(false);
 
   // =========================
   // Load list
@@ -40,21 +43,29 @@ export default function ServiceOrderNumbers() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
-  async function loadNumbers() {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${API}/serviceorder-numbers`, {
-        params: filters,
-        headers: { Authorization: `Bearer ${token}` },
-      });
+async function loadNumbers() {
+  setLoading(true);
+  try {
+    const params = {};
 
-      setRows(res.data);
-    } catch (err) {
-      toast.error("Fout bij laden serviceordernummers");
-    } finally {
-      setLoading(false);
-    }
+    if (filters.year) params.year = filters.year;
+    if (filters.month) params.month = Number(filters.month);
+    if (filters.quarter) params.quarter = Number(filters.quarter);
+    if (filters.status) params.status = filters.status;
+
+    const res = await axios.get(`${API}/serviceorder-numbers`, {
+      params,
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    setRows(res.data);
+  } catch (err) {
+    toast.error("Fout bij laden serviceordernummers");
+  } finally {
+    setLoading(false);
   }
+}
+
 
   // =========================
   // Actions
@@ -93,10 +104,30 @@ export default function ServiceOrderNumbers() {
     if (!selected) return;
 
     try {
-     await axios.put(
-      `${API}/serviceorder-numbers/${selected.so_number}`,
-      form,
-      { headers: { Authorization: `Bearer ${token}` } }
+      // 🔧 Payload exact laten matchen met ServiceOrderNumberUpdate
+      const payload = {
+        customer_id: form.customer_id ?? null,
+        customer_name_free: form.customer_name_free || null,
+
+        supplier_id: form.supplier_id ?? null,
+        supplier_name_free: form.supplier_name_free || null,
+
+        description: form.description || null,
+        type: form.type || null,
+
+        offer: !!form.offer,
+        offer_amount:
+          form.offer
+            ? (form.offer_amount === null || form.offer_amount === ""
+                ? null
+                : Number(form.offer_amount))
+            : null,
+      };
+
+      await axios.put(
+        `${API}/serviceorder-numbers/${selected.so_number}`,
+        payload,
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       toast.success("Gegevens opgeslagen");
@@ -106,6 +137,7 @@ export default function ServiceOrderNumbers() {
       toast.error(err.response?.data?.detail || "Opslaan mislukt");
     }
   }
+
 
   async function confirmNumber() {
     if (!selected) return;
@@ -143,19 +175,51 @@ export default function ServiceOrderNumbers() {
     }
   }
 
+  async function loadServiceOrderNumberDetails(soNumber) {
+  try {
+    const res = await axios.get(
+      `${API}/serviceorder-numbers/${soNumber}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    const r = res.data;
+
+    setSelected(r);
+    setForm({
+      customer_id: r.customer_id ?? null,
+      customer_name_free: r.customer_name_free ?? null,
+
+      supplier_id: r.supplier_id ?? null,
+      supplier_name_free: r.supplier_name_free ?? null,
+
+      description: r.description ?? null,
+      type: r.type ?? null,
+
+      offer: !!r.offer,
+      offer_amount: r.offer_amount ?? null,
+    });
+
+
+    setShowEditModal(true);
+  } catch (err) {
+    toast.error("Serviceordernummer kon niet worden geladen");
+  }
+}
+
+
   // =========================
   // Render helpers
   // =========================
   function statusBadge(status) {
     const map = {
-      FREE: "bg-gray-300",
-      RESERVED: "bg-blue-400",
-      CONFIRMED: "bg-green-500",
-      CANCELLED: "bg-red-400",
+      FREE: "bg-gray-200 text-gray-800",
+      RESERVED: "bg-blue-100 text-blue-800",
+      CONFIRMED: "bg-green-100 text-green-800",
+      CANCELLED: "bg-red-100 text-red-800",
     };
     return (
       <span
-        className={`px-2 py-1 rounded text-white text-xs ${map[status]}`}
+        className={`px-2 py-1 rounded text-xs font-semibold ${map[status]}`}
       >
         {status}
       </span>
@@ -173,6 +237,7 @@ export default function ServiceOrderNumbers() {
 
       {/* ================= Filters & Actions ================= */}
       <div className="flex gap-3 mb-4 items-center">
+        {/* Jaar */}
         <select
           value={filters.year}
           onChange={(e) =>
@@ -188,6 +253,36 @@ export default function ServiceOrderNumbers() {
           )}
         </select>
 
+          {/* Kwartaal */}
+        <select
+          value={filters.quarter}
+          onChange={(e) =>
+            setFilters({ ...filters, quarter: e.target.value, month: "" })
+          }
+        >
+          <option value="">Alle kwartalen</option>
+          <option value="1">Q1</option>
+          <option value="2">Q2</option>
+          <option value="3">Q3</option>
+          <option value="4">Q4</option>
+        </select>
+
+        {/* Maand */}
+        <select
+          value={filters.month}
+          onChange={(e) =>
+            setFilters({ ...filters, month: e.target.value, quarter: "" })
+          }
+        >
+          <option value="">Alle maanden</option>
+          {[...Array(12)].map((_, i) => (
+            <option key={i + 1} value={i + 1}>
+              {new Date(2000, i).toLocaleString("nl-NL", { month: "long" })}
+            </option>
+          ))}
+        </select>
+
+        {/* Status */}
         <select
           value={filters.status || ""}
           onChange={(e) =>
@@ -206,176 +301,232 @@ export default function ServiceOrderNumbers() {
 
         <div className="flex-1" />
 
-        <button
-          className="btn btn-primary"
-          onClick={reserveNew}
-        >
-          + Nieuw nummer
-        </button>
-
-        <button
-          className="btn btn-secondary"
-          onClick={reserveBatch}
-        >
-          Reserveer 10 (werkplaats)
-        </button>
+        
       </div>
 
       {/* ================= Table ================= */}
       <div className="border rounded overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-100">
+        <table className="w-full text-sm border-collapse">
+          <thead className="bg-gray-100 border-b">
             <tr>
-              <th className="p-2 text-left">SO nr</th>
-              <th className="p-2">Datum</th>
-              <th className="p-2">Klant</th>
-              <th className="p-2">Leverancier</th>
-              <th className="p-2">Omschrijving</th>
-              <th className="p-2">Type</th>
-              <th className="p-2">Status</th>
+              <th className="p-2 text-left w-32">SO nr</th>
+              <th className="p-2 w-28">Datum</th>
+              <th className="p-2 text-left">Klant</th>
+              <th className="p-2 text-left">Leverancier</th>
+              <th className="p-2 text-left">Omschrijving</th>
+              <th className="p-2 w-16">Type</th>
+              <th className="p-2 w-32">Status</th>
             </tr>
           </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr
-                key={r.id}
-                className={`border-t hover:bg-gray-50 cursor-pointer ${
-                  r.status !== "RESERVED"
-                    ? "opacity-60 cursor-not-allowed"
-                    : ""
-                }`}
-                onClick={() => {
-                  if (r.status !== "RESERVED") return;
-                  setSelected(r);
-                  setForm({
-                    customer_id: r.customer_id,
-                    customer_name_free: r.customer_name_free,
-                    supplier: r.supplier,
-                    description: r.description,
-                    type: r.type,
-                    offer: r.offer,
-                    offer_amount: r.offer_amount,
-                  });
-                }}
-              >
-                <td className="p-2 font-mono">{r.so_number}</td>
-                <td className="p-2">
-                  {new Date(r.date).toLocaleDateString()}
-                </td>
-                <td className="p-2">
-                  {r.customer_name_free || r.customer_id || ""}
-                </td>
-                <td className="p-2">{r.supplier}</td>
-                <td className="p-2">{r.description}</td>
-                <td className="p-2">{r.type}</td>
-                <td className="p-2 text-center">
-                  {statusBadge(r.status)}
-                </td>
-              </tr>
-            ))}
 
-            {!rows.length && !loading && (
-              <tr>
-                <td colSpan={7} className="p-4 text-center">
-                  Geen resultaten
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+            <tbody>
+              {rows.map((r) => {
+                const clickable = r.status === "RESERVED";
+
+                return (
+                  <tr
+                    key={r.id}
+                    className={`
+                      border-b
+                      ${clickable ? "hover:bg-blue-50 cursor-pointer" : "opacity-60"}
+                    `}
+                    onClick={() => {
+                      if (r.status !== "RESERVED") return;
+                      loadServiceOrderNumberDetails(r.so_number);
+                    }}
+
+                  >
+                    <td className="p-2 font-mono font-semibold">
+                      {r.so_number}
+                    </td>
+
+                    <td className="p-2 text-center">
+                      {new Date(r.date).toLocaleDateString("nl-NL")}
+                    </td>
+
+                    <td className="p-2">
+                      {r.customer_name_free || r.customer_name || "—"}
+                    </td>
+
+                    <td className="p-2">
+                      {r.supplier_name_free || r.supplier_name || "—"}
+                    </td>
+
+                    <td className="p-2 truncate max-w-xs">
+                      {r.description || "—"}
+                    </td>
+
+                    <td className="p-2 text-center">
+                      {r.type || "—"}
+                    </td>
+
+                    <td className="p-2 flex items-center gap-2">
+                      {statusBadge(r.status)}
+                      {r.reserved_by === "WORKSHOP" && (
+                        <span title="Werkplaats">🛠️</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {!rows.length && !loading && (
+                <tr>
+                  <td colSpan={7} className="p-6 text-center text-gray-500">
+                    Geen serviceordernummers gevonden
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
       </div>
 
       {/* ================= Editor ================= */}
-      {selected && (
-        <div className="fixed right-0 top-0 h-full w-96 bg-white shadow-lg p-4">
-          <h2 className="text-lg font-semibold mb-4">
-            {selected.so_number}
-          </h2>
+      {showEditModal && selected && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white w-full max-w-lg rounded shadow-lg p-6">
 
-          <label className="block mb-2">
-            Omschrijving
-            <input
-              className="w-full"
-              value={form.description || ""}
-              onChange={(e) =>
-                setForm({ ...form, description: e.target.value })
-              }
-            />
-          </label>
+            <h2 className="text-xl font-semibold mb-4">
+              Serviceordernummer {selected.so_number}
+            </h2>
 
-          <label className="block mb-2">
-            Leverancier
-            <input
-              className="w-full"
-              value={form.supplier || ""}
-              onChange={(e) =>
-                setForm({ ...form, supplier: e.target.value })
-              }
-            />
-          </label>
-
-          <label className="block mb-2">
-            Type
-            <select
-              className="w-full"
-              value={form.type || ""}
-              onChange={(e) =>
-                setForm({ ...form, type: e.target.value })
-              }
-            >
-              <option value="">–</option>
-              <option value="VO">VO</option>
-              <option value="OH">OH</option>
-            </select>
-          </label>
-
-          <label className="flex items-center gap-2 mb-2">
-            <input
-              type="checkbox"
-              checked={!!form.offer}
-              onChange={(e) =>
-                setForm({ ...form, offer: e.target.checked })
-              }
-            />
-            Offerte
-          </label>
-
-          {form.offer && (
-            <label className="block mb-4">
-              Offertebedrag
+            <label className="block mb-3">
+              Omschrijving
               <input
-                type="number"
-                className="w-full"
-                value={form.offer_amount || ""}
+                className="w-full border rounded px-3 py-2"
+                value={form.description || ""}
                 onChange={(e) =>
-                  setForm({
-                    ...form,
-                    offer_amount: e.target.value,
-                  })
+                  setForm({ ...form, description: e.target.value })
                 }
               />
             </label>
-          )}
 
-          <div className="flex gap-2">
-            <button className="btn btn-primary" onClick={saveDetails}>
-              Opslaan
-            </button>
-            <button
-              className="btn btn-success"
-              onClick={confirmNumber}
-            >
-              Bevestigen
-            </button>
-            <button
-              className="btn btn-danger"
-              onClick={cancelNumber}
-            >
-              Annuleren
-            </button>
+            <label className="block mb-3">
+              Leverancier
+              <input
+                className="w-full border rounded px-3 py-2"
+                value={form.supplier_name_free || ""}
+                onChange={(e) =>
+                  setForm({ ...form, supplier_name_free: e.target.value })
+                }
+              />
+            </label>
+
+            <label className="block mb-3">
+              Klant
+              <input
+                className="w-full border rounded px-3 py-2"
+                value={form.customer_name_free ||""}
+                onChange={(e) =>
+                  setForm({ ...form, customer_name_free: e.target.value})
+                }
+              />
+            </label>
+
+
+            <label className="block mb-3">
+              Type
+              <select
+                className="w-full border rounded px-3 py-2"
+                value={form.type || ""}
+                onChange={(e) =>
+                  setForm({ ...form, type: e.target.value })
+                }
+              >
+                <option value="">—</option>
+                <option value="VO">VO</option>
+                <option value="OH">OH</option>
+              </select>
+            </label>
+
+            <label className="flex items-center gap-2 mb-4">
+              <input
+                type="checkbox"
+                checked={!!form.offer}
+                onChange={(e) =>
+                  setForm({ ...form, offer: e.target.checked })
+                }
+              />
+              Offerte
+            </label>
+
+            {form.offer && (
+              <label className="block mb-4">
+                Offertebedrag
+                <input
+                  type="number"
+                  className="w-full border rounded px-3 py-2"
+                  value={form.offer_amount || ""}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      offer_amount: e.target.value === ""
+                        ? null
+                        : Number(e.target.value),
+                    })
+                  }
+
+                />
+              </label>
+            )}
+
+            <div className="flex justify-between mt-6">
+              <button
+                className="px-4 py-2 bg-gray-300 rounded"
+                onClick={() => setShowEditModal(false)}
+              >
+                Sluiten
+              </button>
+
+              <div className="flex gap-2">
+                <button
+                  className="px-4 py-2 bg-blue-600 text-white rounded"
+                  onClick={async () => {
+                    await saveDetails();
+                    setShowEditModal(false);
+                  }}
+                >
+                  Opslaan
+                </button>
+
+                <button
+                  className="px-4 py-2 bg-green-600 text-white rounded"
+                  onClick={async () => {
+                    await confirmNumber();
+                    setShowEditModal(false);
+                  }}
+                >
+                  Bevestigen
+                </button>
+
+                <button
+                  className="px-4 py-2 bg-red-600 text-white rounded"
+                  onClick={async () => {
+                    await cancelNumber();
+                    setShowEditModal(false);
+                  }}
+                >
+                  Annuleren
+                </button>
+              </div>
+            </div>
+
           </div>
         </div>
       )}
+
+      <ActionBar>
+        <div className="flex gap-3">
+          <Button variant="primary" onClick={reserveNew}>
+              Nieuw nummer
+          </Button>
+
+          <Button variant="secondary" onClick={reserveBatch}>
+            🛠️ Reserveer 10 (werkplaats)
+          </Button>
+        </div>
+      </ActionBar>
+
     </div>
   );
 }

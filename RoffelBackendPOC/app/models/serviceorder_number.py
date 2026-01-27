@@ -30,7 +30,9 @@ class ServiceOrderNumber(Base):
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True)
     customer_name_free = Column(String, nullable=True)
 
-    supplier = Column(String, nullable=True)
+    supplier_id = Column(Integer, ForeignKey("suppliers.id"), nullable=True)
+    supplier_name_free = Column(String, nullable=True)
+
     description = Column(String, nullable=True)
     type = Column(String(2), nullable=True)
 

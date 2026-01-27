@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Path
 from fastapi.responses import FileResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 from datetime import datetime
 
@@ -10,11 +10,15 @@ from app.models.serviceorder import ServiceOrder
 from app.models.serviceorder_item import ServiceOrderItem
 from app.models.article import Article
 from app.models.user import User
-from app.models.customer import SullairSettings
+from app.models.customer import SullairSettings, Customer
 
 from app.schemas.serviceorder import (
     ServiceOrderIn,
     ServiceOrderOverview,
+    ServiceOrderStatusTransition,
+    ServiceOrderStatusEnum,
+    SERVICEORDER_ALLOWED_TRANSITIONS,
+    
 )
 from app.schemas.serviceorder_item import (
     ServiceOrderItemIn,
@@ -31,6 +35,7 @@ from app.services.orders import set_order_status, log_event
 from app.services.documents.packing_slip import build_packing_slip_pdf
 from app.services.documents.stock_order import build_stock_order_pdf
 from app.services.documents.mail_templates import build_sullair_leadtime_mail, build_offer_mail, build_order_confirmation_mail
+from app.services.serviceorder_numbers import confirm_serviceorder_number
 
 import os
 
@@ -50,15 +55,22 @@ def upsert_serviceorder(
     db: Session = Depends(get_db),
     user: User = Depends(require_min_role(UserRole.user)),
 ):
-    existing = db.query(ServiceOrder).filter(ServiceOrder.so == payload.so).first()
-
+    existing = (
+        db.query(ServiceOrder)
+        .filter(ServiceOrder.so == payload.so)
+        .first()
+    )
+    
     if existing:
         for k, v in payload.model_dump().items():
             setattr(existing, k, v)
+        
         db.commit()
         return {"result": "updated", "so": payload.so}
-
+    
+    
     rec = ServiceOrder(**payload.model_dump())
+      
     db.add(rec)
     db.commit()
     db.refresh(rec)
@@ -76,13 +88,19 @@ def upsert_serviceorder(
 @router.get("/overview", response_model=List[ServiceOrderOverview])
 def list_serviceorders_overview(
     db: Session = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_min_role(UserRole.user)),
 ):
-    return (
+    orders = (
         db.query(ServiceOrder)
+        .options(
+            joinedload(ServiceOrder.supplier),
+            joinedload(ServiceOrder.customer),
+        )
         .order_by(ServiceOrder.created_at.desc())
         .all()
     )
+
+    return orders
 
 
 @router.get("/{so}", response_model=ServiceOrderIn)
@@ -455,3 +473,63 @@ def mark_order_confirmation_sent(
     )
 
     return {"status": "ok"}
+
+@router.post("/{so}/transition")
+def transition_serviceorder(
+    so: str,
+    payload: ServiceOrderStatusTransition,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    order = (
+        db.query(ServiceOrder)
+        .filter(ServiceOrder.so == so)
+        .first()
+    )
+
+    if not order:
+        raise HTTPException(404, "Serviceorder not found")
+
+    current = ServiceOrderStatusEnum(order.status)
+    target = payload.to
+
+    allowed = SERVICEORDER_ALLOWED_TRANSITIONS.get(current, [])
+
+    if target not in allowed:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Transition {current} → {target} not allowed"
+        )
+
+    order.status = target
+    db.commit()
+
+    return {"so": so, "status": target}
+
+
+@router.get("/{so}/allowed-statuses")
+def get_allowed_statuses(
+    so: str,
+    user=Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    order = (
+        db.query(ServiceOrder)
+        .filter(ServiceOrder.so == so)
+        .first()
+    )
+
+    if not order:
+        
+        # Nieuwe SO
+        current = ServiceOrderStatusEnum.OPEN
+    else:
+        current = ServiceOrderStatusEnum(order.status)
+
+    allowed = SERVICEORDER_ALLOWED_TRANSITIONS.get(current, [])
+
+    return {
+        "current": current,
+        "allowed": allowed,
+    }
+

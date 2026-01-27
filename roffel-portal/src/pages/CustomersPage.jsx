@@ -38,7 +38,7 @@ export default function CustomersPage() {
   async function loadCustomers() {
     const res = await axios.get(`${API}/customers`, {
       headers: {
-        "x-api-key": "CHANGE_ME",
+        
         Authorization: `Bearer ${token}`,
       },
     });
@@ -49,7 +49,7 @@ export default function CustomersPage() {
   async function loadContacts(customerId) {
     const res = await axios.get(`${API}/customers/${customerId}/contacts`, {
       headers: {
-        "x-api-key": "CHANGE_ME",
+        
         Authorization: `Bearer ${token}`,
       },
     });
@@ -69,7 +69,7 @@ export default function CustomersPage() {
       `${API}/customers/${customerId}/price-rules`,
       {
         headers: {
-          "x-api-key": "CHANGE_ME",
+          
           Authorization: `Bearer ${token}`,
         },
       }
@@ -94,6 +94,8 @@ export default function CustomersPage() {
 
   if (!id) {
     setPriceRules([]);
+    setSelectedCustomer(null);
+    setContacts([]);
     return;
   }
 
@@ -104,7 +106,7 @@ export default function CustomersPage() {
       `${API}/customers/${id}/price-rules`,
       {
         headers: {
-          "x-api-key": "CHANGE_ME",
+          
           Authorization: `Bearer ${token}`,
         },
       }
@@ -128,7 +130,7 @@ export default function CustomersPage() {
     try {
       await axios.post(`${API}/customers`, newCustomer, {
         headers: {
-          "x-api-key": "CHANGE_ME",
+         
           Authorization: `Bearer ${token}`,
         },
       });
@@ -153,7 +155,7 @@ export default function CustomersPage() {
 
     await axios.delete(`${API}/customers/${selectedCustomer.id}`, {
       headers: {
-        "x-api-key": "CHANGE_ME",
+        
         Authorization: `Bearer ${token}`,
       },
     });
@@ -174,7 +176,7 @@ export default function CustomersPage() {
       selectedCustomer,
       {
         headers: {
-          "x-api-key": "CHANGE_ME",
+          
           Authorization: `Bearer ${token}`,
         },
       }
@@ -190,7 +192,13 @@ export default function CustomersPage() {
   async function addContact() {
     await axios.post(
       `${API}/customers/${selectedCustomer.id}/contacts`,
-      newContact
+      newContact,
+
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        }
+      }
     );
 
     setNewContact({ contact_name: "", email: "" });
@@ -200,16 +208,29 @@ export default function CustomersPage() {
   // ======================
   // DELETE CONTACT
   // ======================
-  async function removeContact(id) {
-    await axios.delete(`${API}/contacts/${id}`);
+  async function removeContact(contactId) {
+    await axios.delete(`${API}/customers/${selectedCustomer.id}/contacts/${contactId}`, 
+      {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    });
     loadContacts(selectedCustomer.id);
   }
 
   // ======================
   // EDIT CONTACT
   // ======================
-  async function saveEditedContact(id) {
-    await axios.put(`${API}/contacts/${id}`, editContact);
+  async function saveEditedContact(contactId) {
+    await axios.put(
+      `${API}/customers/${selectedCustomer.id}/contacts/${contactId}`, 
+      editContact,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      }
+    });
+
     setEditingContactId(null);
     loadContacts(selectedCustomer.id);
   }
@@ -217,9 +238,16 @@ export default function CustomersPage() {
   // ======================
   // SET CONTACT Primary
   // ======================
-  async function setPrimaryContact(id) {
+  async function setPrimaryContact(contactId) {
     try {
-      await axios.post(`${API}/contacts/${id}/set_primary`);
+      await axios.post(
+        `${API}/customers/${selectedCustomer.id}/contacts/${contactId}/set_primary`,
+      null,
+    {
+      headers:{
+        Authorization: `Bearer ${token}`,
+      }
+    });
       loadContacts(selectedCustomer.id);
     } catch (err) {
       console.error(err);
@@ -452,7 +480,7 @@ export default function CustomersPage() {
                       priceRules,
                       {
                         headers: {
-                          "x-api-key": "CHANGE_ME",
+                          
                           Authorization: `Bearer ${token}`,
                         },
                       }

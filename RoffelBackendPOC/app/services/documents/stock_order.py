@@ -60,18 +60,54 @@ def get_stock_order_items(db: Session, order: ServiceOrder):
 
     return lines, round(total_net, 2)
 
+def get_stock_order_items_from_serviceorders(
+    db: Session,
+    serviceorders: list[ServiceOrder],
+) -> tuple[list, float]:
+    """
+    Combineert items uit meerdere serviceorders.
+    Output is IDENTIEK aan get_stock_order_items:
+    -> (lines, total_net)
+    """
+    all_lines: list = []
+    total_net: float = 0.0
+
+    for so in serviceorders:
+        lines, net = get_stock_order_items(db, so)
+        all_lines.extend(lines)
+        total_net += net
+
+    return all_lines, total_net
+
+
 
 # ==================================================
 # PDF
 # ==================================================
 
-def build_stock_order_pdf(db: Session, order: ServiceOrder) -> str:
+def build_stock_order_pdf(db: Session, order) -> str:
     sullair = db.query(SullairSettings).first()
     if not sullair:
         raise HTTPException(400, "Sullair settings not configured")
 
-    lines, total_net = get_stock_order_items(db, order)
+    # ------------------------------------------------
+    # Context bepalen: ServiceOrder of PurchaseOrder
+    # ------------------------------------------------
+    is_po = hasattr(order, "serviceorders")
 
+    if is_po:
+        serviceorders = order.serviceorders
+        lines, total_net = get_stock_order_items_from_serviceorders(db, serviceorders)
+        so_refs = [so.so for so in serviceorders]
+        ref = order.po
+    else:
+        lines, total_net = get_stock_order_items(db, order)
+        so_refs = [order.so]
+        ref = order.so
+
+    # ------------------------------------------------
+    # Layout
+    # ------------------------------------------------
     styles = getSampleStyleSheet()
     normal = styles["Normal"]
 
@@ -85,7 +121,7 @@ def build_stock_order_pdf(db: Session, order: ServiceOrder) -> str:
 
     filename = os.path.join(
         tmp_dir,
-        f"stockorder_{order.so}_{uuid.uuid4().hex}.pdf"
+        f"stockorder_{ref}_{uuid.uuid4().hex}.pdf"
     )
 
     doc = SimpleDocTemplate(
@@ -95,7 +131,7 @@ def build_stock_order_pdf(db: Session, order: ServiceOrder) -> str:
         rightMargin=18 * mm,
         topMargin=15 * mm,
         bottomMargin=15 * mm,
-        title=f"Stock Order {order.so}",
+        title=f"Stock Order {ref}",
     )
 
     elements = []
@@ -130,16 +166,27 @@ def build_stock_order_pdf(db: Session, order: ServiceOrder) -> str:
     # ================= Reference =================
 
     today = date.today().strftime("%d-%m-%Y")
-    ref = Table(
-        [[f"Our reference: {order.so}/{order.po or ''}", f"Ridderkerk, {today}"]],
-        colWidths=[content_w * 0.65, content_w * 0.35],
-    )
-    ref.setStyle(TableStyle([
+
+    if is_po:
+        ref_table = Table(
+            [
+                [f"Our reference: PO {ref}", f"Ridderkerk, {today}"],
+                [f"Serviceorders: {', '.join(so_refs)}", ""],
+            ],
+            colWidths=[content_w * 0.65, content_w * 0.35],
+        )
+    else:
+        ref_table = Table(
+            [[f"Our reference: {ref}", f"Ridderkerk, {today}"]],
+            colWidths=[content_w * 0.65, content_w * 0.35],
+        )
+
+    ref_table.setStyle(TableStyle([
         ("ALIGN", (1,0), (1,0), "RIGHT"),
         ("LEFTPADDING", (0,0), (-1,-1), 0),
         ("RIGHTPADDING", (0,0), (-1,-1), 0),
     ]))
-    elements.append(ref)
+    elements.append(ref_table)
     elements.append(Spacer(1, 12))
 
     elements.append(Paragraph(
@@ -202,3 +249,4 @@ def build_stock_order_pdf(db: Session, order: ServiceOrder) -> str:
 
     doc.build(elements)
     return filename
+

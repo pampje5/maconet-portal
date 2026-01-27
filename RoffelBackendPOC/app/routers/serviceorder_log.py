@@ -9,7 +9,7 @@ from app.models.user import User
 
 router = APIRouter(
     prefix="/serviceorders",
-    tags=["Serviceorders"],
+    tags=["serviceorders"],
 )
 
 

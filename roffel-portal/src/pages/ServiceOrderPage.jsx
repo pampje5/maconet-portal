@@ -1,9 +1,13 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { formatCurrency, formatQty } from "../utils/format";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import ActionBar from "../components/ActionBar";
+import Button from "../components/ui/Button";
+import ConfirmLeaveModal from "../components/ConfirmLeaveModal";
+import { useNavigationGuard } from "../context/NavigationGuardContext";
+
 
 export default function ServiceorderPage() {
   const API = "http://127.0.0.1:8000";
@@ -14,13 +18,16 @@ export default function ServiceorderPage() {
 
   const [form, setForm] = useState({
     so: "",
+    customer_id: null,
+    supplier_id: 2,   // default
     customer_ref: "",
     po: "",
     status: "",
-    supplier: "",
     price_type: "",
     remarks: "",
   });
+
+  const [soReserved, setSoReserved] = useState(false);
 
   const [soLocked, setSoLocked] = useState(false);
 
@@ -37,13 +44,29 @@ export default function ServiceorderPage() {
   const [editMode, setEditMode] = useState(false);
 
   // =========================
-  // Customers + contacts
+  // Leave Modal
+  // =========================
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const navigate = useNavigate();
+  const [pendingNavigation, setPendingNavigation] = useState(null);
+
+  // =========================
+  // Customers + contacts + suppliers
   // =========================
   const [customers, setCustomers] = useState([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
 
   const [contacts, setContacts] = useState([]);
   const [selectedContactId, setSelectedContactId] = useState(null);
+
+  const [suppliers, setSuppliers] = useState([]);
+  const [selectedSupplierId, setSelectedSupplierId] = useState(null);
+
+  // ========================
+  // Status
+  // ========================
+  const [allowedStatuses, setAllowedStatuses] = useState([]);
+
 
   // =========================
   // Items
@@ -64,6 +87,24 @@ export default function ServiceorderPage() {
   const [log, setLog] = useState([]);
 
   // =========================
+  // Saving guard
+  // =========================
+  const isSavingRef = useRef(false);
+
+  const { registerBlocker } = useNavigationGuard();
+
+  useEffect(() => {
+    const dirty = form.so && !soLocked; // jouw logica
+    registerBlocker(dirty, (to) => {
+      setPendingNavigation(to);
+      setShowLeaveModal(true);
+    });
+
+    return () => registerBlocker(false, null); // opruimen bij unmount
+  }, [form.so, soLocked]);
+
+
+  // =========================
   // Unknown article modal
   // =========================
   const [showUnknownArticleModal, setShowUnknownArticleModal] = useState(false);
@@ -78,49 +119,7 @@ export default function ServiceorderPage() {
     internal: false,
   });
 
-  // =========================
-  // Button styles (UI consistency)
-  // =========================
-  const BTN_PRIMARY = `
-    px-6 py-2
-    bg-blue-600 hover:bg-blue-700
-    text-white
-    rounded
-    font-medium
-    focus:outline-none focus:ring-2 focus:ring-blue-300
-  `;
-
-  const BTN_SECONDARY = `
-    px-5 py-2
-    border border-gray-300
-    text-gray-700
-    bg-white
-    rounded
-    hover:bg-gray-100
-    font-medium
-    focus:outline-none focus:ring-2 focus:ring-gray-200
-  `;
-
-  const BTN_SUCCESS = `
-    px-6 py-2
-    bg-green-600 hover:bg-green-700
-    text-white
-    rounded
-    font-medium
-    focus:outline-none focus:ring-2 focus:ring-green-300
-  `;
-
-  const BTN_DANGER = `
-    px-5 py-2
-    border border-red-600
-    text-red-600
-    bg-white
-    rounded
-    hover:bg-red-50
-    font-medium
-    focus:outline-none focus:ring-2 focus:ring-red-300
-  `;
-
+  
   // =======================
   // Helpers
   // =======================
@@ -138,6 +137,58 @@ export default function ServiceorderPage() {
 
   const hasPackingSlipSelection =
     packingSlipOptions.customer || packingSlipOptions.internal;
+
+  const hasUnsavedSO = Boolean(form.so && !soLocked);
+
+
+  // =========================
+  // Serviceordernr
+  // =========================
+  async function reserveServiceOrderNumber() {
+    try {
+      const res = await axios.post(
+        `${API}/serviceorder-numbers/reserve`,
+        null,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      updateField("so", res.data.so_number);
+      setSoReserved(true);
+
+      toast.success(`Serviceordernummer ${res.data.so_number} gereserveerd`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Kon serviceordernummer niet reserveren");
+    }
+  }
+
+  // =========================
+  // Load suppliers
+  // =========================
+
+  useEffect(() => {
+  async function loadSuppliers() {
+    try {
+      const res = await axios.get(`${API}/suppliers`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const activeSuppliers = res.data.filter(s => s.is_active);
+      setSuppliers(activeSuppliers);
+
+      // default: Sullair (optioneel maar handig)
+      const sullair = res.data.find(s => s.name === "Sullair");
+      if (sullair) setSelectedSupplierId(sullair.id);
+    } catch (err) {
+      console.error(err);
+      toast.error("Kon leveranciers niet laden");
+    }
+  }
+
+  if (token) loadSuppliers();
+}, [API, token]);
+
 
   // =========================
   // Load customers
@@ -160,43 +211,108 @@ export default function ServiceorderPage() {
     if (token) loadCustomers();
   }, [API, token]);
 
+
   // =========================
-  // When customer selected -> set supplier + price_type + load contacts
+  // Load status
   // =========================
   useEffect(() => {
-    async function loadContacts(customerId) {
-      try {
-        const res = await axios.get(`${API}/customers/${customerId}/contacts`, {
+    if (form.so) {
+      loadAllowedStatuses(form.so);
+    }
+  }, [form.so]);
+
+
+
+
+  // =========================
+  // When customer selected -> set customer_id + price_type + load contacts
+  // =========================
+ useEffect(() => {
+  async function loadContacts(customerId) {
+    try {
+      const res = await axios.get(
+        `${API}/customers/${customerId}/contacts`,
+        {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        });
+        }
+      );
 
-        setContacts(res.data);
+      setContacts(res.data);
 
-        // default: primary
-        const primary = res.data.find((c) => c.is_primary);
-        if (primary) setSelectedContactId(primary.id);
-      } catch (err) {
-        console.error(err);
-      }
+      // default: primary contact
+      const primary = res.data.find((c) => c.is_primary);
+      if (primary) setSelectedContactId(primary.id);
+    } catch (err) {
+      console.error(err);
     }
+  }
 
-    if (!selectedCustomerId) {
-      setContacts([]);
-      setSelectedContactId(null);
-      updateField("price_type", "");
-      updateField("supplier", "");
-      return;
-    }
+  if (!selectedCustomerId) {
+    setContacts([]);
+    setSelectedContactId(null);
 
-    const cust = customers.find((c) => c.id === selectedCustomerId);
-    if (cust) {
-      updateField("supplier", cust.name);
-      updateField("price_type", cust.price_type || "");
-      loadContacts(selectedCustomerId);
-    }
-  }, [selectedCustomerId, customers, token, API]);
+    updateField("customer_id", null);
+    updateField("price_type", "");
+
+    return;
+  }
+
+  const cust = customers.find((c) => c.id === selectedCustomerId);
+  if (cust) {
+    updateField("customer_id", cust.id);
+    updateField("price_type", cust.price_type || "");
+
+    // 🔒 supplier is vast: Sullair (id = 2)
+    updateField("supplier_id", 2);
+
+    loadContacts(cust.id);
+  }
+}, [selectedCustomerId, customers, token, API]);
+
+  // =========================
+  // Status
+  // =========================
+  async function loadAllowedStatuses(so) {
+  try {
+    const res = await axios.get(
+      `${API}/serviceorders/${so}/allowed-statuses`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    setAllowedStatuses(res.data.allowed || []);
+  } catch (err) {
+    console.error(err);
+    toast.error("Kon statusopties niet laden");
+  }
+}
+
+async function changeStatus(nextStatus) {
+  if (!nextStatus || !form.so) return;
+
+  try {
+    await axios.post(
+      `${API}/serviceorders/${form.so}/transition`,
+      { to: nextStatus },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    // 🔄 lokale status bijwerken
+    updateField("status", nextStatus);
+
+    // 🔁 nieuwe allowed transitions ophalen
+    await loadAllowedStatuses(form.so);
+
+    toast.success(`Status gewijzigd naar ${nextStatus}`);
+  } catch (err) {
+    console.error(err);
+    toast.error(
+      err.response?.data?.detail || "Status wijzigen mislukt"
+    );
+  }
+}
+
 
   // =========================
   // Load a single service order (from url)
@@ -217,25 +333,21 @@ export default function ServiceorderPage() {
 
       setForm({
         so: order.so || "",
+
+        customer_id: order.customer_id || null,
+        supplier_id: order.supplier_id || 2, // fallback: Sullair
+
         customer_ref: order.customer_ref || "",
         po: order.po || "",
         status: order.status || "",
-        supplier: order.supplier || "",
         price_type: order.price_type || "",
         remarks: order.remarks || "",
       });
 
       setSoLocked(true);
 
-      // probeer ook customer dropdown te syncen op basis van supplier (customer name)
-      // (jouw DB gebruikt order.supplier = klantnaam)
-      if (order.supplier && customers.length) {
-        const cust = customers.find((c) => c.name === order.supplier);
-        if (cust) {
-          setSelectedCustomerId(cust.id);
-          // contacts worden daarna geladen in effect
-        }
-      }
+      if (order.customer_id) { setSelectedCustomerId(order.customer_id)};
+
     } catch (err) {
       console.error(err);
       toast.error("Serviceorder kon niet worden geladen");
@@ -276,19 +388,7 @@ export default function ServiceorderPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [soFromUrl, token]);
 
-  // ALSO: if customers arrive later, sync customer dropdown for loaded order
-  useEffect(() => {
-    if (!soFromUrl) return;
-    if (!form.supplier) return;
-    if (!customers.length) return;
-
-    const cust = customers.find((c) => c.name === form.supplier);
-    if (cust && cust.id !== selectedCustomerId) {
-      setSelectedCustomerId(cust.id);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [customers]);
-
+  
   // =========================
   // mark received item
   // =========================
@@ -316,27 +416,48 @@ export default function ServiceorderPage() {
   // =========================
   // Save service order
   // =========================
+
   async function saveOrder() {
-    if (!form.so.trim()) {
-      alert("Serviceorder nummer is verplicht");
+    if (!form.so) {
+      toast.error("Geen serviceordernummer");
       return;
     }
 
     try {
-      await axios.post(`${API}/serviceorders/upsert`, form, {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      // 1️⃣ ServiceOrder opslaan (leidend)
+      await axios.post(
+        `${API}/serviceorders/upsert`,
+        {
+          ...form,
+          customer_id: selectedCustomerId,
+          supplier_id: selectedSupplierId,
         },
-      });
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-      toast.success("Serviceorder opgeslagen");
+      // 2️⃣ ServiceOrderNumber details zetten (RESERVED → update toegestaan)
+      await axios.put(
+        `${API}/serviceorder-numbers/${form.so}`,
+        buildServiceOrderNumberUpdatePayload(),
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      // 3️⃣ Nummer bevestigen (body is zinloos bij jouw backend)
+      await axios.post(
+        `${API}/serviceorder-numbers/${form.so}/confirm`,
+        null,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
       setSoLocked(true);
-      loadLog(form.so);
+      toast.success("Serviceorder opgeslagen");
     } catch (err) {
       console.error(err);
       toast.error("Opslaan mislukt");
     }
   }
+
+
 
   // =========================
   // Add article
@@ -640,10 +761,74 @@ export default function ServiceorderPage() {
     previewPackingSlip();
   }
 
+  // ========================
+  // Payload voor SOnmbr
+  // ========================
+  function buildServiceOrderNumberUpdatePayload() {
+    const customer = customers.find(c => c.id === selectedCustomerId);
+    const supplier = suppliers.find(s => s.id === selectedSupplierId);
+
+    return {
+      customer_id: selectedCustomerId ?? null,
+      supplier_id: selectedSupplierId ?? null,
+
+      // 👇 expliciet vullen voor weergave / historie
+      customer_name_free: customer?.name ?? null,
+      supplier_name_free: supplier?.name ?? null,
+
+      description: `Sullair onderdelen, klantreferentie ${form.customer_ref || "-"}`,
+      type: "VO",
+    };
+  }
+
+
+
+  // ========================
+  // Vrijgeven serviceordernummer na Cancel
+  // ========================
+
+  // useEffect(() => {
+  //  return () => {
+  //    if (form.so && !soLocked && !isSavingRef.current) {
+  //      axios.post(
+  //        `${API}/serviceorder-numbers/${form.so}/cancel`,
+  //        null,
+  //        {
+  //          headers: {
+  //            Authorization: `Bearer ${token}`,
+  //          },
+  //        }
+  //      );
+  //    }
+  //  };
+  //}, [form.so, soLocked, API, token]);
+
   // =========================
   // UI
   // =========================
   return (
+    <>
+    <ConfirmLeaveModal
+        open={showLeaveModal}
+        onClose={() => setShowLeaveModal(false)}
+        onSave={async () => {
+          await saveOrder();
+          registerBlocker(false, null)
+          setShowLeaveModal(false);
+          navigate(pendingNavigation);
+        }}
+        onCancel={async () => {
+          await axios.post(
+            `${API}/serviceorder-numbers/${form.so}/cancel`,
+            null,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          registerBlocker(false, null)
+          setShowLeaveModal(false);
+          navigate(pendingNavigation);
+        }}
+      />
+
     <div className="min-h-screen bg-gray-100 p-8 pb-32">
       <h1 className="text-2xl font-bold mb-6">Serviceorder Sullair</h1>
 
@@ -655,12 +840,24 @@ export default function ServiceorderPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label>Serviceorder nr *</label>
-              <input
-                className="w-full border rounded px-3 py-2"
-                disabled={soLocked}
-                value={form.so}
-                onChange={(e) => updateField("so", e.target.value)}
-              />
+                <input
+                  className="w-full border rounded px-3 py-2"
+                  disabled={soReserved || soLocked}
+                  value={form.so}
+                  onChange={(e) => updateField("so", e.target.value)}
+                />
+
+                {!form.so && (
+                  <button
+                    type="button"
+                    variant="primary"
+                    onClick={reserveServiceOrderNumber}
+                  >
+                    ➕ Nieuw serviceordernummer
+                  </button>
+                )}
+              
+
             </div>
 
             <div>
@@ -681,22 +878,31 @@ export default function ServiceorderPage() {
               />
             </div>
 
+
+
             <div>
               <label>Status</label>
+
               <select
                 className="w-full border rounded px-3 py-2"
-                value={form.status}
-                onChange={(e) => updateField("status", e.target.value)}
+                value=""
+                onChange={(e) => changeStatus(e.target.value)}
+                disabled={!allowedStatuses.length}
               >
-                <option value="">-- kies status --</option>
-                <option>OPEN</option>
-                <option>AANGEVRAAGD</option>
-                <option>OFFERTE</option>
-                <option>BESTELD</option>
-                <option>ONTVANGEN</option>
-                <option>AFGEHANDELD</option>
+                {/* Huidige status (read-only) */}
+                <option value="" disabled>
+                  {form.status || "-- status --"}
+                </option>
+
+                {/* Toegestane volgende statussen */}
+                {allowedStatuses.map((st) => (
+                  <option key={st} value={st}>
+                    {st}
+                  </option>
+                ))}
               </select>
             </div>
+
           </div>
         </div>
 
@@ -750,13 +956,29 @@ export default function ServiceorderPage() {
                 value={form.price_type || ""}
               />
             </div>
+
+            <div>
+              <label>Leverancier</label>
+              <select
+                className="w-full border rounded px-3 py-2"
+                value={selectedSupplierId || ""}
+                onChange={(e) => setSelectedSupplierId(Number(e.target.value))}
+              >
+                <option value="">-- kies leverancier --</option>
+                {suppliers.map(s => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <button className={BTN_SUCCESS} onClick={saveOrder} disabled={loadingOrder}>
+          <Button variant="success" onClick={saveOrder} disabled={loadingOrder}>
             {loadingOrder ? "Laden..." : "Serviceorder opslaan"}
-          </button>
+          </Button>
 
           {soFromUrl && (
             <span className="text-sm text-gray-500">
@@ -778,9 +1000,9 @@ export default function ServiceorderPage() {
                 onChange={(e) => setNewPartNo(e.target.value)}
               />
 
-              <button className={BTN_PRIMARY} onClick={addArticle}>
+              <Button variant="primary" onClick={addArticle}>
                 Toevoegen
-              </button>
+              </Button>
             </div>
 
             {loadingItems ? (
@@ -995,13 +1217,13 @@ export default function ServiceorderPage() {
 
                 {/* Rechts: acties */}
                 <div className="flex gap-3">
-                  <button className={BTN_SECONDARY} onClick={() => setShowMailModal(false)}>
+                  <Button variant="secondary" onClick={() => setShowMailModal(false)}>
                     Annuleren
-                  </button>
+                  </Button>
 
-                  <button className={BTN_PRIMARY} onClick={sendMail}>
+                  <Button variant="primary" onClick={sendMail}>
                     Verzenden
-                  </button>
+                  </Button>
 
                   <button
                     className="text-sm text-blue-700 underline"
@@ -1053,35 +1275,32 @@ export default function ServiceorderPage() {
 
               {/* Acties */}
               <div className="flex justify-end gap-3 mt-6">
-                <button
-                  className={BTN_SECONDARY}
+                <Button
+                  variant="secondary"
                   onClick={() => {
                     setShowPackingSlipModal(false);
                     setPackingSlipOptions({ customer: false, internal: false });
                   }}
                 >
                   Sluiten
-                </button>
+                </Button>
 
-                <button
-                  className={`${BTN_PRIMARY} ${
-                    !hasPackingSlipSelection ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
+                <Button
+                  variant="primary"
                   disabled={!hasPackingSlipSelection}
                   onClick={previewPackingSlip}
                 >
                   Preview
-                </button>
+                </Button>
 
-                <button
-                  className={`${BTN_SUCCESS} ${
-                    !hasPackingSlipSelection ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
+
+                <Button
+                  variant="succes"
                   disabled={!hasPackingSlipSelection}
                   onClick={printPackingSlip}
                 >
                   Afdrukken
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -1125,28 +1344,26 @@ export default function ServiceorderPage() {
         <ActionBar>
           {/* Links: “veilige” acties */}
           <div className="flex flex-wrap gap-3">
-            <button className={BTN_SUCCESS} onClick={saveItems}>
+            <Button variant="success" onClick={saveItems}>
               Artikelen opslaan
-            </button>
+            </Button>
 
-            <button className={BTN_PRIMARY} onClick={openSullairMailPreview}>
+            <Button variant="primary" onClick={openSullairMailPreview}>
               Aanvraag bij Sullair
-            </button>
+            </Button>
 
-            <button className={BTN_SECONDARY} onClick={openOfferPreview}>
+            <Button variant="secondary" onClick={openOfferPreview}>
               Offerte versturen
-            </button>
+            </Button>
 
             <div className="relative group">
-              <button
-                className={`${BTN_SECONDARY} ${
-                  !hasOrderedItems ? "opacity-50 cursor-not-allowed" : ""
-                }`}
+              <Button
+                variant="secondary"
                 disabled={!hasOrderedItems}
                 onClick={openOrderConfirmationPreview}
               >
                 Bestelbevestiging klant
-              </button>
+              </Button>
 
               {!hasOrderedItems && (
                 <div
@@ -1170,15 +1387,13 @@ export default function ServiceorderPage() {
           {/* Rechts: proces / “impactvolle” acties */}
           <div className="flex flex-wrap gap-3">
             <div className="relative group">
-              <button
-                className={`${BTN_DANGER} ${
-                  !hasOrderedItems ? "opacity-50 cursor-not-allowed" : ""
-                }`}
+              <Button
+                variant="danger"
                 disabled={!hasOrderedItems}
                 onClick={openStockOrderPreview}
               >
                 Bestellen
-              </button>
+              </Button>
 
               {!hasOrderedItems && (
                 <div
@@ -1199,16 +1414,20 @@ export default function ServiceorderPage() {
             </div>
 
             {hasReceivedItems && (
-              <button
-                className={BTN_SECONDARY}
+              <Button
+                variant="secondary"
                 onClick={() => setShowPackingSlipModal(true)}
               >
                 📦 Pakbon genereren
-              </button>
+              </Button>
             )}
           </div>
         </ActionBar>
       )}
+
+              
+
     </div>
+  </>  
   );
 }

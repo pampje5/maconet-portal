@@ -15,7 +15,9 @@ from app.routers import (
     customer_contacts,
     customer_pricing,
     sullair_settings,
-    articles
+    articles,
+    suppliers,
+    purchaseorder_numbers,
 )
 
 app = FastAPI(title="Roffel Backend API")
@@ -41,3 +43,5 @@ app.include_router(customer_contacts.router)
 app.include_router(customer_pricing.router)
 app.include_router(sullair_settings.router)
 app.include_router(articles.router)
+app.include_router(suppliers.router)
+app.include_router(purchaseorder_numbers.router)

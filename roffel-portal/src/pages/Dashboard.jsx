@@ -59,12 +59,23 @@ export default function Dashboard() {
         <Link
           to="/serviceorder-numbers"
           className="p-6 bg-white rounded-2xl shadow hover:shadow-lg transition block"
-          >
+        >
             <h2 className="text-xl font-semibold mb-2">Serviceorders Algemeen</h2>
             <p className="text-gray-600">
               Algemene Serviceorders en werkplaatsnummers
             </p>
-          </Link>
+        </Link>
+
+        <Link
+          to="/purchaseorderpage"
+          className="p-6 bg-white rounded-2xl shadow hover:shadow-lg transition block"
+        >
+            <h2 className="text-xl font-semibold mb-2">Inkooporders Algemeen</h2>
+            <p className="text-gray-600">
+              Algemene Inkoopnummers
+            </p>
+        </Link>
+
           
         {/* Klantenbeheer */}
         <Link

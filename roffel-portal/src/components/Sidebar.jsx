@@ -1,6 +1,7 @@
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getMe } from "../utils/auth";
+import { useNavigationGuard } from "../context/NavigationGuardContext";
 
 import {
   Home,
@@ -18,6 +19,7 @@ export default function Sidebar() {
   const location = useLocation();
   const [openSO, setOpenSO] = useState(true);
   const [me, setMe] = useState(null);
+  const { guardedNavigate } = useNavigationGuard()
 
   useEffect(() => {
     getMe().then(setMe);
@@ -38,70 +40,92 @@ export default function Sidebar() {
       </div>
 
       {/* Dashboard */}
-      <Link
-        to="/dashboard"
+      <div
         className={`${linkBase} ${location.pathname === "/dashboard" ? active : inactive}`}
+        onClick={() => guardedNavigate("/dashboard")}
       >
         <Home size={18} />
         Dashboard
-      </Link>
+      </div>
 
-      {/* Serviceorder blok */}
+      {/* Serviceorder algemeen */}
+      <div
+        className={`${linkBase} ${location.pathname === "/serviceorder-numbers" ? active : inactive}`}
+        onClick={() => guardedNavigate("/serviceorder-numbers")}
+      >
+        <List size={18} />
+        Serviceorder algemeen
+      </div>
+
+     {/* Serviceorder blok */}
       <div>
-
+        {/* Hoofdknop (alleen openen/sluiten, GEEN navigatie) */}
         <div
-          className={`${linkBase} ${location.pathname.includes("/serviceorder") ? active : inactive}`}
+          className={`${linkBase} ${
+            location.pathname.startsWith("/serviceorder/")
+              ? active
+              : inactive
+          }`}
           onClick={() => setOpenSO(!openSO)}
         >
           <FileSpreadsheet size={18} />
           Serviceorder Sullair
 
           <span className="ml-auto">
-            {openSO ? <ChevronDown size={16}/> : <ChevronRight size={16}/>}
+            {openSO ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
           </span>
         </div>
 
+        {/* Submenu */}
         {openSO && (
           <div className="ml-6 mt-2 space-y-1">
 
-            <Link
-              to="/serviceorder/new"
-              className={`${linkBase} ${location.pathname === "/serviceorder/new" ? active : inactive}`}
+            <div
+              className={`${linkBase} ${
+                location.pathname === "/serviceorder/new" ? active : inactive
+              }`}
+              onClick={() => guardedNavigate("/serviceorder/new")}
             >
               <PlusCircle size={16} />
               Nieuwe serviceorder
-            </Link>
+            </div>
 
-            <Link
-              to="/serviceorder/list"
-              className={`${linkBase} ${location.pathname === "/serviceorder/list" ? active : inactive}`}
+            <div
+              className={`${linkBase} ${
+                location.pathname === "/serviceorder/list" ? active : inactive
+              }`}
+              onClick={() => guardedNavigate("/serviceorder/list")}
             >
               <List size={16} />
               Overzicht
-            </Link>
+            </div>
 
-            <Link
-              to="/serviceorder/edit"
-              className={`${linkBase} ${location.pathname === "/serviceorder/edit" ? active : inactive}`}
+            <div
+              className={`${linkBase} ${
+                location.pathname === "/serviceorder/edit" ? active : inactive
+              }`}
+              onClick={() => guardedNavigate("/serviceorder/edit")}
             >
               <Edit size={16} />
               Bewerken
-            </Link>
+            </div>
 
           </div>
         )}
       </div>
 
+
       {/* Instellingen */}
       
       {me && me.role !== "user" && (
-      <Link
-        to="/settings"
+      <div
         className={`${linkBase} ${location.pathname === "/settings" ? active : inactive}`}
+        onClick={() => guardedNavigate("/settings")}
       >
         <Settings size={18} />
         Instellingen
-      </Link>
+      </div>
+      
       )}
     </div>
   );
