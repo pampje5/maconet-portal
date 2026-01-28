@@ -13,4 +13,7 @@ roffel-portal/build/
 
 #------OS TRASH--------
 .DS_Store
-Thumbs.db 
+Thumbs.db
+
+#------ENV FILES-------
+roffel-portal/src/.env
