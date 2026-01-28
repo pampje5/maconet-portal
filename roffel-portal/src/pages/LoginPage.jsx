@@ -20,7 +20,7 @@ export default function LoginPage() {
     form.append("password", password);
 
     const res = await axios.post(
-      "http://127.0.0.1:8000/auth/login",
+      process.env.API_URL + "/auth/login",
       form,
       {
         headers: {
