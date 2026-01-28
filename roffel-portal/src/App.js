@@ -4,8 +4,6 @@ import {
   Route
 } from "react-router-dom";
 
-import dotenv from "dotenv";
-
 import LoginPage from "./pages/LoginPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
@@ -24,8 +22,6 @@ import PurchaseOrdersPage from "./pages/PurchaseOrderPage.jsx";
 
 import { Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-
-dotenv.config(path="./.env");
 
 
 export default function App() {

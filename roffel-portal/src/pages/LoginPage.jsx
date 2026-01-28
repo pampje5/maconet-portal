@@ -20,7 +20,7 @@ export default function LoginPage() {
     form.append("password", password);
 
     const res = await axios.post(
-      process.env.API_URL + "/auth/login",
+      process.env.REACT_APP_API_URL + "/auth/login",
       form,
       {
         headers: {
