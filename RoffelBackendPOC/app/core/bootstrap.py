@@ -14,7 +14,7 @@ def create_initial_admin(db: Session):
 
     admin = User(
         email=os.getenv("INITIAL_ADMIN_EMAIL"),
-        hashed_password=hash_password(
+        password_hash=hash_password(
             os.getenv("INITIAL_ADMIN_PASSWORD")
         ),
         role="developer",
