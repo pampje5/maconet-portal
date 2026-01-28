@@ -3,8 +3,6 @@ import dotenv from "dotenv";
 
 dotenv.config()
 
-console.warn(process.env.API_URL);
-
 const api = axios.create({
   baseURL: process.env.API_URL,
 });
