@@ -25,7 +25,7 @@ import PurchaseOrdersPage from "./pages/PurchaseOrderPage.jsx";
 import { Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
-dotenv.config();
+dotenv.config(path="./.env");
 
 
 export default function App() {
