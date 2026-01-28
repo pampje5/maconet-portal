@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API = "http://127.0.0.1:8000";
+const API = process.env.REACT_APP_API_URL
 
 export async function getMe() {
   const token = localStorage.getItem("token");
