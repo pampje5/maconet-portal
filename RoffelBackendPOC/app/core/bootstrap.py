@@ -1,7 +1,11 @@
 import os
+
+from dotenv import load_dotenv
 from sqlalchemy.orm import Session
 from app.models.user import User
 from app.core.security import hash_password
+
+load_dotenv()
 
 def create_initial_admin(db: Session):
     user_exists = db.query(User).first()

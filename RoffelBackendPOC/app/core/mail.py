@@ -1,6 +1,10 @@
 import os
 import requests
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 MAILGUN_API_KEY = os.getenv("MAILGUN_API_KEY")
 MAILGUN_DOMAIN = os.getenv("MAILGUN_DOMAIN")
 MAIL_FROM_EMAIL = os.getenv("MAIL_FROM_EMAIL")
