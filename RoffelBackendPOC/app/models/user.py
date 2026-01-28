@@ -17,6 +17,10 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
 
+    first_name = Column(String, nullable=True)
+    last_name = Column(String, nullable=True)
+    function = Column(String, nullable=True)
+
     role = Column(
         Enum(UserRole),
         default=UserRole.user,
@@ -29,3 +33,7 @@ class User(Base):
     reset_expires = Column(DateTime, nullable = True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    @property
+    def full_name(self):
+        return " ".join(filter(None, [self.first_name, self.last_name]))

@@ -71,7 +71,9 @@ export default function UsersPage() {
         <table className="w-full">
           <thead className="bg-gray-100">
             <tr>
+              <th className="p-3 text-left">Naam</th>
               <th className="p-3 text-left">Email</th>
+              <th className="p-3 text-left">Functie</th>
               <th className="p-3 text-left">Rol</th>
               <th className="p-3 text-left">Acties</th>
             </tr>
@@ -79,7 +81,16 @@ export default function UsersPage() {
           <tbody>
             {users.map((u) => (
               <tr key={u.id} className="border-t">
-                <td className="p-3">{u.email}</td>
+              <td className="p-3">
+                {[u.first_name, u.last_name].filter(Boolean).join(" ") || "—"}
+              </td>
+
+              <td className="p-3">{u.email}</td>
+
+              <td className="p-3">
+                {u.function || "—"}
+              </td>
+
                 <td className="p-3">
                   <select
                     value={u.role}

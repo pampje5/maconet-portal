@@ -8,6 +8,10 @@ export default function CreateUserModal({ onClose, onCreated }) {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("user");
   const [loading, setLoading] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [functionName, setFunctionName] = useState("");
+
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -18,7 +22,13 @@ export default function CreateUserModal({ onClose, onCreated }) {
 
       await axios.post(
         `${API}/users/create`,
-        { email, role },
+        { email, 
+          role,
+          first_name: firstName || null,
+          last_name: lastName || null,
+          function: functionName || null, 
+        },
+        
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -59,6 +69,27 @@ export default function CreateUserModal({ onClose, onCreated }) {
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
+
+          <input
+            className="w-full border rounded px-3 py-2 mb-2"
+            placeholder="Voornaam"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+          />
+
+          <input
+            className="w-full border rounded px-3 py-2 mb-2"
+            placeholder="Achternaam"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+          />
+
+          <input
+            className="w-full border rounded px-3 py-2 mb-4"
+            placeholder="Functie (bijv. Werkvoorbereider)"
+            value={functionName}
+            onChange={(e) => setFunctionName(e.target.value)}
+          />
 
           <div>
             <label className="block text-sm font-medium mb-1">

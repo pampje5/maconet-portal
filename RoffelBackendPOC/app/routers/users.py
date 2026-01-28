@@ -34,6 +34,9 @@ def create_user(
         email=data.email,
         password_hash=hash_password(temp_password),
         role=data.role,
+        first_name=data.first_name,
+        last_name=data.last_name,
+        function=data.function,
     )
 
     # 🔁 force reset
@@ -72,11 +75,7 @@ def create_user(
     )
 
 
-    return {
-        "id": user.id,
-        "email": user.email,
-        "role": user.role,
-    }
+    return user
 
 @router.delete("/{user_id}")
 def delete_user(
