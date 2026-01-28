@@ -18,7 +18,7 @@ def create_initial_admin(db: Session):
             os.getenv("INITIAL_ADMIN_PASSWORD")
         ),
         role="developer",
-        is_active=True,
+        
     )
 
     db.add(admin)
