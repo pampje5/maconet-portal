@@ -17,3 +17,4 @@ Thumbs.db
 
 #------ENV FILES-------
 roffel-portal/src/.env
+RoffelBackendPOC/.env
