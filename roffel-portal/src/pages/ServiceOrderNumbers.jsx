@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api";
 import toast from "react-hot-toast";
 import ActionBar from "../components/ActionBar";
 import Button from "../components/ui/Button";
@@ -11,9 +11,6 @@ import Button from "../components/ui/Button";
  * Administratieve pagina voor uitgifte en beheer van ServiceOrderNrs
  */
 export default function ServiceOrderNumbers() {
-
-  const API = "http://127.0.0.1:8000";
-  const token = localStorage.getItem("token");
 
   const currentYear = new Date().getFullYear();
 
@@ -53,9 +50,8 @@ async function loadNumbers() {
     if (filters.quarter) params.quarter = Number(filters.quarter);
     if (filters.status) params.status = filters.status;
 
-    const res = await axios.get(`${API}/serviceorder-numbers`, {
+    const res = await api.get(`/serviceorder-numbers`, {
       params,
-      headers: { Authorization: `Bearer ${token}` },
     });
 
     setRows(res.data);
@@ -72,10 +68,10 @@ async function loadNumbers() {
   // =========================
   async function reserveNew() {
     try {
-      const res = await axios.post(
-        `${API}/serviceorder-numbers/reserve`,
+      const res = await api.post(
+        "/serviceorder-numbers/reserve",
         null,
-        { headers: { Authorization: `Bearer ${token}` } }
+        
       );
 
       toast.success(`Nummer ${res.data.so_number} gereserveerd`);
@@ -87,10 +83,9 @@ async function loadNumbers() {
 
   async function reserveBatch() {
     try {
-      const res = await axios.post(
-        `${API}/serviceorder-numbers/reserve-batch/10`,
+      const res = await api.post(
+        "/serviceorder-numbers/reserve-batch/10",
         null,
-        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       toast.success(`${res.data.count} nummers gereserveerd voor werkplaats`);
@@ -124,10 +119,9 @@ async function loadNumbers() {
             : null,
       };
 
-      await axios.put(
-        `${API}/serviceorder-numbers/${selected.so_number}`,
+      await api.put(
+        `/serviceorder-numbers/${selected.so_number}`,
         payload,
-        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       toast.success("Gegevens opgeslagen");
@@ -143,10 +137,9 @@ async function loadNumbers() {
     if (!selected) return;
 
     try {
-      await axios.post(
-      `${API}/serviceorder-numbers/${selected.so_number}/confirm`,
+      await api.post(
+      `/serviceorder-numbers/${selected.so_number}/confirm`,
       null,
-      { headers: { Authorization: `Bearer ${token}` } }
       );
 
       toast.success("Nummer bevestigd");
@@ -161,10 +154,9 @@ async function loadNumbers() {
     if (!selected) return;
 
     try {
-      await axios.post(
-        `${API}/serviceorder-numbers/${selected.so_number}/cancel`,
+      await api.post(
+        `/serviceorder-numbers/${selected.so_number}/cancel`,
         null,
-        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       toast.success("Nummer geannuleerd");
@@ -177,9 +169,8 @@ async function loadNumbers() {
 
   async function loadServiceOrderNumberDetails(soNumber) {
   try {
-    const res = await axios.get(
-      `${API}/serviceorder-numbers/${soNumber}`,
-      { headers: { Authorization: `Bearer ${token}` } }
+    const res = await api.get(
+      `/serviceorder-numbers/${soNumber}`,
     );
 
     const r = res.data;

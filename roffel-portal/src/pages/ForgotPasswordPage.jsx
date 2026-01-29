@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import api from "../api";
 
 export default function ForgotPasswordPage() {
 
@@ -9,7 +9,7 @@ export default function ForgotPasswordPage() {
   async function submit(e) {
     e.preventDefault();
 
-    await axios.post("http://127.0.0.1:8000/auth/request-password-reset", {
+    await api.post("/auth/request-password-reset", {
       email
     });
 

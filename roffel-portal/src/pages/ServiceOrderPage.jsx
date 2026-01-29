@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import axios from "axios";
+import api from "../api";
 import toast from "react-hot-toast";
 import { formatCurrency, formatQty } from "../utils/format";
 import { useSearchParams, useNavigate } from "react-router-dom";
@@ -10,9 +10,7 @@ import { useNavigationGuard } from "../context/NavigationGuardContext";
 
 
 export default function ServiceorderPage() {
-  const API = "http://127.0.0.1:8000";
-  const token = localStorage.getItem("token");
-
+  
   const [searchParams] = useSearchParams();
   const soFromUrl = searchParams.get("so"); // string | null
 
@@ -146,12 +144,9 @@ export default function ServiceorderPage() {
   // =========================
   async function reserveServiceOrderNumber() {
     try {
-      const res = await axios.post(
-        `${API}/serviceorder-numbers/reserve`,
+      const res = await api.post(
+        "/serviceorder-numbers/reserve",
         null,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
       );
 
       updateField("so", res.data.so_number);
@@ -171,9 +166,7 @@ export default function ServiceorderPage() {
   useEffect(() => {
   async function loadSuppliers() {
     try {
-      const res = await axios.get(`${API}/suppliers`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get("/suppliers" );
       const activeSuppliers = res.data.filter(s => s.is_active);
       setSuppliers(activeSuppliers);
 
@@ -186,8 +179,8 @@ export default function ServiceorderPage() {
     }
   }
 
-  if (token) loadSuppliers();
-}, [API, token]);
+   loadSuppliers();
+}, []);
 
 
   // =========================
@@ -196,11 +189,7 @@ export default function ServiceorderPage() {
   useEffect(() => {
     async function loadCustomers() {
       try {
-        const res = await axios.get(`${API}/customers`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const res = await api.get("/customers");
         setCustomers(res.data);
       } catch (err) {
         console.error(err);
@@ -208,8 +197,8 @@ export default function ServiceorderPage() {
       }
     }
 
-    if (token) loadCustomers();
-  }, [API, token]);
+     loadCustomers();
+  }, []);
 
 
   // =========================
@@ -230,14 +219,9 @@ export default function ServiceorderPage() {
  useEffect(() => {
   async function loadContacts(customerId) {
     try {
-      const res = await axios.get(
-        `${API}/customers/${customerId}/contacts`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const res = await api.get(
+        `/customers/${customerId}/contacts`
+        );
 
       setContacts(res.data);
 
@@ -269,17 +253,16 @@ export default function ServiceorderPage() {
 
     loadContacts(cust.id);
   }
-}, [selectedCustomerId, customers, token, API]);
+}, [selectedCustomerId, customers]);
 
   // =========================
   // Status
   // =========================
   async function loadAllowedStatuses(so) {
   try {
-    const res = await axios.get(
-      `${API}/serviceorders/${so}/allowed-statuses`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    const res = await api.get(
+      `/serviceorders/${so}/allowed-statuses`,
+      );
 
     setAllowedStatuses(res.data.allowed || []);
   } catch (err) {
@@ -292,11 +275,10 @@ async function changeStatus(nextStatus) {
   if (!nextStatus || !form.so) return;
 
   try {
-    await axios.post(
-      `${API}/serviceorders/${form.so}/transition`,
-      { to: nextStatus },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    await api.post(
+      `/serviceorders/${form.so}/transition`,
+      { to: nextStatus }
+      );
 
     // 🔄 lokale status bijwerken
     updateField("status", nextStatus);
@@ -320,14 +302,8 @@ async function changeStatus(nextStatus) {
   async function loadServiceOrder(so) {
     setLoadingOrder(true);
     try {
-      const res = await axios.get(
-        `${API}/serviceorders/${encodeURIComponent(so)}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const res = await api.get(
+        `/serviceorders/${encodeURIComponent(so)}`);
 
       const order = res.data;
 
@@ -359,14 +335,8 @@ async function changeStatus(nextStatus) {
   async function loadItems(so) {
     setLoadingItems(true);
     try {
-      const res = await axios.get(
-        `${API}/serviceorders/${encodeURIComponent(so)}/items`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const res = await api.get(
+        `/serviceorders/${encodeURIComponent(so)}/items`);
       setItems(res.data || []);
     } catch (err) {
       console.error(err);
@@ -379,14 +349,13 @@ async function changeStatus(nextStatus) {
   // Trigger load when soFromUrl is present
   useEffect(() => {
     if (!soFromUrl) return;
-    if (!token) return;
 
     // load order + items
     loadServiceOrder(soFromUrl);
     loadItems(soFromUrl);
     loadLog(soFromUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [soFromUrl, token]);
+  }, [soFromUrl]);
 
   
   // =========================
@@ -394,15 +363,10 @@ async function changeStatus(nextStatus) {
   // =========================
   async function markItemReceived(item) {
     try {
-      await axios.post(
-        `${API}/serviceorders/${form.so}/items/${item.id}/receive`,
+      await api.post(
+        `/serviceorders/${form.so}/items/${item.id}/receive`,
         {},
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+        );
 
       toast.success(`Artikel ${item.part_no} ontvangen`);
       loadItems(form.so);
@@ -425,29 +389,26 @@ async function changeStatus(nextStatus) {
 
     try {
       // 1️⃣ ServiceOrder opslaan (leidend)
-      await axios.post(
-        `${API}/serviceorders/upsert`,
+      await api.post(
+        "/serviceorders/upsert",
         {
           ...form,
           customer_id: selectedCustomerId,
           supplier_id: selectedSupplierId,
         },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+        );
 
       // 2️⃣ ServiceOrderNumber details zetten (RESERVED → update toegestaan)
-      await axios.put(
-        `${API}/serviceorder-numbers/${form.so}`,
+      await api.put(
+        `/serviceorder-numbers/${form.so}`,
         buildServiceOrderNumberUpdatePayload(),
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+        );
 
       // 3️⃣ Nummer bevestigen (body is zinloos bij jouw backend)
-      await axios.post(
-        `${API}/serviceorder-numbers/${form.so}/confirm`,
+      await api.post(
+        `/serviceorder-numbers/${form.so}/confirm`,
         null,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+        );
 
       setSoLocked(true);
       toast.success("Serviceorder opgeslagen");
@@ -466,11 +427,7 @@ async function changeStatus(nextStatus) {
     if (!newPartNo.trim()) return;
 
     try {
-      const res = await axios.get(`${API}/articles/${newPartNo}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await api.get(`/articles/${newPartNo}`);
 
       const a = res.data;
 
@@ -533,11 +490,7 @@ async function changeStatus(nextStatus) {
       return;
     }
 
-    await axios.post(`${API}/serviceorders/${form.so}/items/replace`, items, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    await api.post(`/serviceorders/${form.so}/items/replace`, items);
 
     await loadItems(form.so);
 
@@ -554,15 +507,10 @@ async function changeStatus(nextStatus) {
     }
 
     try {
-      const res = await axios.post(
-        `${API}/serviceorders/${form.so}/mail/leadtime/preview`,
-        null,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const res = await api.post(
+        `/serviceorders/${form.so}/mail/leadtime/preview`,
+        null
+        );
 
       setMailPreview(res.data);
       setEditMode(false);
@@ -581,15 +529,10 @@ async function changeStatus(nextStatus) {
     }
 
     try {
-      const res = await axios.post(
-        `${API}/serviceorders/${form.so}/mail/offer/preview`,
-        null,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const res = await api.post(
+        `/serviceorders/${form.so}/mail/offer/preview`,
+        null
+        );
 
       setMailPreview(res.data);
       setEditMode(false);
@@ -608,14 +551,9 @@ async function changeStatus(nextStatus) {
   }
 
   try {
-    const res = await axios.get(
-      `${API}/serviceorders/${encodeURIComponent(form.so)}/order/preview`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const res = await api.get(
+      `/serviceorders/${encodeURIComponent(form.so)}/order/preview`
+      );
 
     setMailPreview(res.data);     // bevat to/subject/body_html + pdf/pdf_path (of straks pdf_url)
     setEditMode(false);
@@ -632,15 +570,9 @@ async function changeStatus(nextStatus) {
 
   async function openOrderConfirmationPreview() {
     try {
-      const res = await axios.post(
-        `${API}/serviceorders/${form.so}/mail/order-confirmation/preview`,
-        null,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const res = await api.post(
+        `/serviceorders/${form.so}/mail/order-confirmation/preview`,
+        null);
 
       setMailPreview(res.data);
       setShowMailModal(true);
@@ -656,7 +588,7 @@ async function changeStatus(nextStatus) {
 
     const isStockOrder = !!mailPreview.pdf;
 
-    const url = isStockOrder ? `${API}/mail/stock-order/simulate` : `${API}/mail/send`;
+    const url = isStockOrder ? `/mail/stock-order/simulate` : `/mail/send`;
 
     const payload = isStockOrder
       ? { so: form.so }
@@ -667,11 +599,7 @@ async function changeStatus(nextStatus) {
         };
 
     try {
-      await axios.post(url, payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      await api.post(url, payload);
 
       setShowMailModal(false);
       alert("Mail verzonden ✔");
@@ -683,11 +611,7 @@ async function changeStatus(nextStatus) {
 
   async function loadLog(so) {
     try {
-      const res = await axios.get(`${API}/serviceorders/${so}/log`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await api.get(`/serviceorders/${so}/log`);
 
       setLog(res.data);
     } catch (err) {
@@ -695,52 +619,39 @@ async function changeStatus(nextStatus) {
     }
   }
 
- async function openPdfPreview() {
-  if (!form.so) {
-    toast.error("Geen serviceorder nummer");
-    return;
-  }
-
-  try {
-    const res = await fetch(
-      `${API}/serviceorders/${encodeURIComponent(form.so)}/order/pdf`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    if (!res.ok) {
-      throw new Error("PDF preview mislukt");
+  async function openPdfPreview() {
+    if (!form.so) {
+      toast.error("Geen serviceorder nummer");
+      return;
     }
 
-    const blob = await res.blob();
-    const url = window.URL.createObjectURL(blob);
-    window.open(url, "_blank");
-  } catch (err) {
-    console.error(err);
-    toast.error("Kon PDF niet openen");
+    try {
+      const res = await api.get(
+        `/serviceorders/${encodeURIComponent(form.so)}/order/pdf`,
+        { responseType: "blob" }
+      );
+
+      const url = window.URL.createObjectURL(res.data);
+      window.open(url, "_blank");
+
+    } catch (err) {
+      console.error(err);
+      toast.error("Kon PDF niet openen");
+    }
   }
-}
 
 
 
   async function openPackingSlip(mode) {
     try {
-      const res = await fetch(`${API}/serviceorders/${form.so}/packing-slip/${mode}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await api.get(
+        `/serviceorders/${form.so}/packing-slip/${mode}`,
+        { responseType: "blob" }
+      );
 
-      if (!res.ok) {
-        throw new Error("Pakbon ophalen mislukt");
-      }
-
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
+      const url = window.URL.createObjectURL(res.data);
       window.open(url, "_blank");
+
     } catch (err) {
       console.error(err);
       toast.error("Kon pakbon niet openen");
@@ -790,18 +701,13 @@ async function changeStatus(nextStatus) {
   // useEffect(() => {
   //  return () => {
   //    if (form.so && !soLocked && !isSavingRef.current) {
-  //      axios.post(
-  //        `${API}/serviceorder-numbers/${form.so}/cancel`,
+  //      api.post(
+  //        `/serviceorder-numbers/${form.so}/cancel`,
   //        null,
-  //        {
-  //          headers: {
-  //            Authorization: `Bearer ${token}`,
-  //          },
-  //        }
   //      );
   //    }
   //  };
-  //}, [form.so, soLocked, API, token]);
+  //}, [form.so, soLocked]);
 
   // =========================
   // UI
@@ -818,11 +724,9 @@ async function changeStatus(nextStatus) {
           navigate(pendingNavigation);
         }}
         onCancel={async () => {
-          await axios.post(
-            `${API}/serviceorder-numbers/${form.so}/cancel`,
-            null,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
+          await api.post(
+            `/serviceorder-numbers/${form.so}/cancel`,
+            null);
           registerBlocker(false, null)
           setShowLeaveModal(false);
           navigate(pendingNavigation);

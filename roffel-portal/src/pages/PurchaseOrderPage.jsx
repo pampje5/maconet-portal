@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api";
 import toast from "react-hot-toast";
 import ActionBar from "../components/ActionBar";
 import Button from "../components/ui/Button";
@@ -9,9 +9,7 @@ import Button from "../components/ui/Button";
  * Administratieve pagina voor uitgifte en beheer van PurchaseOrderNrs
  */
 export default function PurchaseOrderNumbers() {
-  const API = "http://127.0.0.1:8000";
-  const token = localStorage.getItem("token");
-
+  
   const currentYear = new Date().getFullYear();
 
   // =========================
@@ -47,12 +45,9 @@ export default function PurchaseOrderNumbers() {
       if (filters.month) params.month = Number(filters.month);
       if (filters.status) params.status = filters.status;
 
-      const res = await axios.get(
-        `${API}/purchaseorder-numbers`,
-        {
-          params,
-          headers: { Authorization: `Bearer ${token}` },
-        }
+      const res = await api.get(
+        "/purchaseorder-numbers",
+        { params }
       );
 
       setRows(res.data);
@@ -68,10 +63,9 @@ export default function PurchaseOrderNumbers() {
   // =========================
   async function reserveNew() {
     try {
-      const res = await axios.post(
-        `${API}/purchaseorder-numbers/reserve`,
+      const res = await api.post(
+        "/purchaseorder-numbers/reserve",
         null,
-        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       toast.success(`PO nummer ${res.data.po_number} gereserveerd`);
@@ -100,10 +94,9 @@ export default function PurchaseOrderNumbers() {
             : Number(form.order_total),
       };
 
-      await axios.put(
-        `${API}/purchaseorder-numbers/${selected.po_number}`,
+      await api.put(
+        `/purchaseorder-numbers/${selected.po_number}`,
         payload,
-        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       toast.success("Gegevens opgeslagen");
@@ -118,10 +111,9 @@ export default function PurchaseOrderNumbers() {
     if (!selected) return;
 
     try {
-      await axios.post(
-        `${API}/purchaseorder-numbers/${selected.po_number}/confirm`,
+      await api.post(
+        `/purchaseorder-numbers/${selected.po_number}/confirm`,
         null,
-        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       toast.success("PO nummer bevestigd");
@@ -136,10 +128,9 @@ export default function PurchaseOrderNumbers() {
     if (!selected) return;
 
     try {
-      await axios.post(
-        `${API}/purchaseorder-numbers/${selected.po_number}/cancel`,
+      await api.post(
+        `/purchaseorder-numbers/${selected.po_number}/cancel`,
         null,
-        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       toast.success("PO nummer geannuleerd");
@@ -152,9 +143,8 @@ export default function PurchaseOrderNumbers() {
 
   async function loadPurchaseOrderNumberDetails(poNumber) {
     try {
-      const res = await axios.get(
-        `${API}/purchaseorder-numbers/${poNumber}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const res = await api.get(
+        `/purchaseorder-numbers/${poNumber}`,
       );
 
       const r = res.data;

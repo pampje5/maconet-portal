@@ -1,16 +1,11 @@
-import axios from "axios";
-
-const API = process.env.REACT_APP_API_URL
+import api from "../api";
 
 export async function getMe() {
-  const token = localStorage.getItem("token");
-  if (!token) return null;
-
-  const res = await axios.get(`${API}/auth/whoami`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  return res.data;
+  try {
+    const res = await api.get("/auth/whoami");
+    return res.data;
+  } catch {
+    return null;
+  }
 }
+

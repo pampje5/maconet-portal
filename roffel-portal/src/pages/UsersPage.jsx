@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api";
 import toast from "react-hot-toast";
 import CreateUserModal from "../components/CreateUserModal";
-
-const API = "http://127.0.0.1:8000";
 
 
 export default function UsersPage() {
@@ -15,12 +13,7 @@ export default function UsersPage() {
 
   async function loadUsers() {
     try {
-      const token = localStorage.getItem("token");
-      const res = await axios.get(`${API}/users`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await api.get("/users");
       setUsers(res.data);
     } catch (err) {
       toast.error("Gebruikers laden mislukt");
@@ -31,10 +24,7 @@ export default function UsersPage() {
 
   async function loadMe() {
   try {
-    const token = localStorage.getItem("token");
-    const res = await axios.get(`${API}/auth/whoami`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await api.get("/auth/whoami");
     setMe(res.data);
   } catch {
     setMe(null);
@@ -101,16 +91,10 @@ export default function UsersPage() {
                     }
                     onChange={async (e) => {
                       try {
-                        const token = localStorage.getItem("token");
-                        await axios.post(
-                          `${API}/users/${u.id}/set-role`,
-                          { role: e.target.value },
-                          {
-                            headers: {
-                              Authorization: `Bearer ${token}`,
-                            },
-                          }
-                        );
+                        
+                        await api.post(
+                          `/users/${u.id}/set-role`,
+                          { role: e.target.value });
                         toast.success("Rol aangepast");
                         loadUsers();
                       } catch {
@@ -137,12 +121,8 @@ export default function UsersPage() {
                           if (!window.confirm(`Gebruiker ${u.email} verwijderen?`)) return;
 
                           try {
-                            const token = localStorage.getItem("token");
-                            await axios.delete(`${API}/users/${u.id}`, {
-                              headers: {
-                                Authorization: `Bearer ${token}`,
-                              },
-                            });
+                            
+                            await api.delete(`/users/${u.id}`);
                             toast.success("Gebruiker verwijderd");
                             loadUsers();
                           } catch {

@@ -1,8 +1,8 @@
 import { useState } from "react";
-import axios from "axios";
+import api from "../api";
 import toast from "react-hot-toast";
 
-const API = "http://127.0.0.1:8000";
+
 
 export default function CreateUserModal({ onClose, onCreated }) {
   const [email, setEmail] = useState("");
@@ -18,10 +18,9 @@ export default function CreateUserModal({ onClose, onCreated }) {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem("token");
-
-      await axios.post(
-        `${API}/users/create`,
+      
+      await api.post(
+        "/users/create",
         { email, 
           role,
           first_name: firstName || null,
@@ -29,12 +28,7 @@ export default function CreateUserModal({ onClose, onCreated }) {
           function: functionName || null, 
         },
         
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+        );
 
       toast.success("Gebruiker aangemaakt (reset verplicht)");
       onCreated();     // users opnieuw laden

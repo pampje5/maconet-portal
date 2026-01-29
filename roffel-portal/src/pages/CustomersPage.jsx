@@ -1,12 +1,10 @@
 
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../api"
 import toast from "react-hot-toast";
 
 export default function CustomersPage() {
-  const API = "http://127.0.0.1:8000";
-  const token = localStorage.getItem("token");
-
+ 
   const [customers, setCustomers] = useState([]);
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [priceRules, setPriceRules] = useState([]);
@@ -24,6 +22,7 @@ export default function CustomersPage() {
   // ---- Nieuw klant formulier ----
   const [newCustomer, setNewCustomer] = useState({
     name: "",
+    price_type: "",
   });
 
   // ---- Contact formulier ----
@@ -36,53 +35,37 @@ export default function CustomersPage() {
   // LOAD CUSTOMERS
   // ======================
   async function loadCustomers() {
-    const res = await axios.get(`${API}/customers`, {
-      headers: {
-        
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const res = await api.get("/customers");
 
     setCustomers(res.data);
   }
 
   async function loadContacts(customerId) {
-    const res = await axios.get(`${API}/customers/${customerId}/contacts`, {
-      headers: {
-        
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    setContacts(res.data);
+    try {
+      const res = await api.get(`/customers/${customerId}/contacts`);
+      setContacts(res.data);
+    } catch (err) {
+      console.error(err);
+      toast.error("Kan contacten niet laden");
+    }  
   }
 
   useEffect(() => {
     loadCustomers();
   }, []);
 
-  async function loadPriceRules(customerId) {
-  setLoadingPriceRules(true);
+  async function loadPriceRules(customerId) {setLoadingPriceRules(true);
 
-  try {
-    const res = await axios.get(
-      `${API}/customers/${customerId}/price-rules`,
-      {
-        headers: {
-          
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    setPriceRules(res.data);
-  } catch (err) {
-    console.error(err);
-    toast.error("Kon prijsstaffels niet laden");
-  } finally {
-    setLoadingPriceRules(false);
+    try {
+      const res = await api.get(`/customers/${customerId}/price-rules`);
+      setPriceRules(res.data);
+    } catch (err) {
+      console.error(err);
+      toast.error("Kon prijsstaffels niet laden");
+    } finally {
+      setLoadingPriceRules(false);
+    }
   }
-}
 
   // ======================
   // SELECT CUSTOMER
@@ -102,14 +85,9 @@ export default function CustomersPage() {
   try {
     setLoadingPriceRules(true);
 
-    const res = await axios.get(
-      `${API}/customers/${id}/price-rules`,
-      {
-        headers: {
-          
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    const res = await api.get(
+      `/customers/${id}/price-rules`
+      
     );
 
     setPriceRules(res.data);
@@ -128,12 +106,7 @@ export default function CustomersPage() {
   // ======================
   async function createCustomer() {
     try {
-      await axios.post(`${API}/customers`, newCustomer, {
-        headers: {
-         
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      await api.post("/customers", newCustomer);
 
       toast.success("Klant aangemaakt");
       setNewCustomer({ name: "", price_type: "" });
@@ -153,12 +126,7 @@ export default function CustomersPage() {
     if (!window.confirm("Weet je zeker dat je deze klant wilt verwijderen?"))
       return;
 
-    await axios.delete(`${API}/customers/${selectedCustomer.id}`, {
-      headers: {
-        
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    await api.delete(`/customers/${selectedCustomer.id}`);
 
     toast.success("Klant verwijderd");
 
@@ -171,16 +139,9 @@ export default function CustomersPage() {
   // SAVE SETTINGS
   // ======================
   async function saveCustomerSettings() {
-    await axios.put(
-      `${API}/customers/${selectedCustomer.id}`,
-      selectedCustomer,
-      {
-        headers: {
-          
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    await api.put(
+      `/customers/${selectedCustomer.id}`,
+      selectedCustomer);
 
     toast.success("Klant opgeslagen");
     loadCustomers();
@@ -190,16 +151,9 @@ export default function CustomersPage() {
   // ADD CONTACT
   // ======================
   async function addContact() {
-    await axios.post(
-      `${API}/customers/${selectedCustomer.id}/contacts`,
-      newContact,
-
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        }
-      }
-    );
+    await api.post(
+      `/customers/${selectedCustomer.id}/contacts`,
+      newContact);
 
     setNewContact({ contact_name: "", email: "" });
     loadContacts(selectedCustomer.id);
@@ -209,12 +163,7 @@ export default function CustomersPage() {
   // DELETE CONTACT
   // ======================
   async function removeContact(contactId) {
-    await axios.delete(`${API}/customers/${selectedCustomer.id}/contacts/${contactId}`, 
-      {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      }
-    });
+    await api.delete(`/customers/${selectedCustomer.id}/contacts/${contactId}`);
     loadContacts(selectedCustomer.id);
   }
 
@@ -222,14 +171,10 @@ export default function CustomersPage() {
   // EDIT CONTACT
   // ======================
   async function saveEditedContact(contactId) {
-    await axios.put(
-      `${API}/customers/${selectedCustomer.id}/contacts/${contactId}`, 
+    await api.put(
+      `/customers/${selectedCustomer.id}/contacts/${contactId}`, 
       editContact,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      }
-    });
+    );
 
     setEditingContactId(null);
     loadContacts(selectedCustomer.id);
@@ -240,14 +185,10 @@ export default function CustomersPage() {
   // ======================
   async function setPrimaryContact(contactId) {
     try {
-      await axios.post(
-        `${API}/customers/${selectedCustomer.id}/contacts/${contactId}/set_primary`,
+      await api.post(
+        `/customers/${selectedCustomer.id}/contacts/${contactId}/set_primary`,
       null,
-    {
-      headers:{
-        Authorization: `Bearer ${token}`,
-      }
-    });
+    );
       loadContacts(selectedCustomer.id);
     } catch (err) {
       console.error(err);
@@ -475,15 +416,10 @@ export default function CustomersPage() {
                   await saveCustomerSettings();
 
                   try {
-                    await axios.post(
-                      `${API}/customers/${selectedCustomer.id}/price-rules`,
+                    await api.post(
+                      `$/customers/${selectedCustomer.id}/price-rules`,
                       priceRules,
-                      {
-                        headers: {
-                          
-                          Authorization: `Bearer ${token}`,
-                        },
-                      }
+                      
                     );
 
                     toast.success("Klant + adres + prijsregels opgeslagen");

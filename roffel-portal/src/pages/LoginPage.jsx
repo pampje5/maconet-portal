@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import api from "../api"
 import { useNavigate } from "react-router-dom";
 
 export default function LoginPage() {
@@ -19,8 +19,8 @@ export default function LoginPage() {
     form.append("username", email);   // OAuth2 expects "username"
     form.append("password", password);
 
-    const res = await axios.post(
-      process.env.REACT_APP_API_URL + "/auth/login",
+    const res = await api.post(
+      "/auth/login",
       form,
       {
         headers: {

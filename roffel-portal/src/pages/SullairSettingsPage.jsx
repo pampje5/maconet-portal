@@ -1,11 +1,8 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "../api";
 import toast from "react-hot-toast";
 
 export default function SullairSettingsPage() {
-
-  const API = "http://127.0.0.1:8000";
-  const token = localStorage.getItem("token");
 
   const [form, setForm] = useState({
     contact_name: "",
@@ -18,12 +15,7 @@ export default function SullairSettingsPage() {
 
   async function loadSettings() {
     try {
-      const res = await axios.get(`${API}/sullair/settings`, {
-        headers: {
-          "x-api-key": "CHANGE_ME",
-          Authorization: `Bearer ${token}`
-        }
-      });
+      const res = await api.get("/sullair/settings");
 
       if (res.data) setForm(res.data);
 
@@ -34,12 +26,7 @@ export default function SullairSettingsPage() {
 
   async function saveSettings() {
     try {
-      await axios.post(`${API}/sullair/settings`, form, {
-        headers: {
-          "x-api-key": "CHANGE_ME",
-          Authorization: `Bearer ${token}`
-        }
-      });
+      await api.post("/sullair/settings", form);
 
       toast.success("Sullair instellingen opgeslagen");
     } catch (err) {

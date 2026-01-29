@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../api";
 import { useNavigate } from "react-router-dom";
 
 export default function ServiceOrdersPage() {
-  const API = "http://127.0.0.1:8000";
-  const token = localStorage.getItem("token");
+  
   const navigate = useNavigate();
 
   const [orders, setOrders] = useState([]);
@@ -37,12 +36,7 @@ export default function ServiceOrdersPage() {
 
   async function loadOrders() {
     try {
-      const res = await axios.get(`${API}/serviceorders/overview`, {
-        headers: {
-          "x-api-key": "CHANGE_ME",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await api.get("/serviceorders/overview");
       setOrders(res.data);
     } catch (err) {
       console.error(err);
