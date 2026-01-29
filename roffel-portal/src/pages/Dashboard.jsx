@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getMe } from "../utils/auth";
 
+import sullairImage from "./Sullair.png"
+
 
 export default function Dashboard() {
 
@@ -25,7 +27,7 @@ export default function Dashboard() {
 
         <div className="flex items-center gap-4">
           <img src="/maconet.png" alt="Maconet" className="h-12" />
-          <img src="/sullair.png" alt="Sullair" className="h-10" />
+          <img src={sullairImage} alt="Sullair" className="h-10" />
         </div>
 
         <h1 className="text-3xl font-bold">
