@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getMe } from "../utils/auth";
 
-import sullairImage from "./Sullair.png"
+import sullairImage from "../../public/Sullair.png"
 
 
 export default function Dashboard() {
