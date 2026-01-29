@@ -2,7 +2,9 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getMe } from "../utils/auth";
 
-import sullairImage from "../../public/Sullair.png"
+import sullairImage from "./images/Sullair.png";
+import maconetImage from "./images/Maconet.png";
+import roffeloacImage from "./images/roffeloac.png";
 
 
 export default function Dashboard() {
@@ -26,7 +28,7 @@ export default function Dashboard() {
       <div className="flex items-center justify-between mb-8">
 
         <div className="flex items-center gap-4">
-          <img src="/maconet.png" alt="Maconet" className="h-12" />
+          <img src={maconetImage} alt="Maconet" className="h-12" />
           <img src={sullairImage} alt="Sullair" className="h-10" />
         </div>
 
@@ -109,7 +111,7 @@ export default function Dashboard() {
       {/* FOOTER */}
       <div className="mt-12 text-center text-sm text-gray-500">
         Created by
-        <img src="/roffeloac.png" alt="Roffel" className="h-8 inline ml-2" />
+        <img src={roffeloacImage} alt="Roffel" className="h-8 inline ml-2" />
       </div>
 
     </div>
