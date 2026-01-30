@@ -5,7 +5,7 @@ import { getMe } from "../utils/auth";
 const ROLE_LEVEL = {
   user: 1,
   admin: 2,
-  designer: 3,
+  developer: 3,
 };
 
 export default function ProtectedRoute({ children, minRole = "user" }) {
