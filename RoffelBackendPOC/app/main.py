@@ -40,6 +40,7 @@ app.add_middleware(
 app.add_middleware(
     TrustedHostMiddleware,
     allowed_hosts=["maconet.roffeloac.nl"]
+)
 
 
 app.include_router(health.router)
