@@ -27,6 +27,7 @@ from app.schemas.serviceorder_item import (
 from app.schemas.serviceorder_log import ServiceOrderLogOut
 from app.schemas.article import ArticleOut
 from app.schemas.mail import MailPreviewOut, MailPreviewIn
+from app.schemas.serviceorder_merge import ServiceOrderForPOMergeOut
 
 from app.core.security import get_current_user, require_min_role, UserRole
 
@@ -36,6 +37,7 @@ from app.services.documents.packing_slip import build_packing_slip_pdf
 from app.services.documents.stock_order import build_stock_order_pdf
 from app.services.documents.mail_templates import build_sullair_leadtime_mail, build_offer_mail, build_order_confirmation_mail
 from app.services.serviceorder_numbers import confirm_serviceorder_number
+from app.services.pricing import calculate_order_totals
 
 import os
 
@@ -533,3 +535,59 @@ def get_allowed_statuses(
         "allowed": allowed,
     }
 
+# ================================
+# t.b.v Merging
+# ================================
+
+@router.get("/for-po-merge", response_model=list[ServiceOrderForPOMergeOut])
+def list_serviceorders_for_po_merge(
+    db: Session = Depends(get_db),
+    user: User = Depends(require_min_role(UserRole.user)),
+):
+    orders = (
+        db.query(ServiceOrder)
+        .options(
+            joinedload(ServiceOrder.customer),
+            joinedload(ServiceOrder.supplier),
+        )
+        .order_by(ServiceOrder.created_at.desc())
+        .all()
+    )
+
+    out: list[ServiceOrderForPOMergeOut] = []
+
+    for o in orders:
+        # ---- klant/leverancier display met fallbacks ----
+        customer_display = (
+            getattr(o, "customer_name_free", None)
+            or (o.customer.name if getattr(o, "customer", None) else None)
+            or "—"
+        )
+        supplier_display = (
+            getattr(o, "supplier_name_free", None)
+            or (o.supplier.name if getattr(o, "supplier", None) else None)
+            or "—"
+        )
+
+        # ---- totaal (jouw pricing geeft key 'total') ----
+        order_total = 0.0
+        try:
+            pricing = calculate_order_totals(db, o)
+            order_total = float(pricing.get("total") or 0.0)
+        except Exception:
+            # niet hard falen op 1 order; alleen totaal blijft 0
+            order_total = 0.0
+
+        out.append(
+            ServiceOrderForPOMergeOut(
+                so=o.so,
+                date=getattr(o, "date", None) or getattr(o, "created_at", None),
+                customer_display=customer_display,
+                supplier_display=supplier_display,
+                order_total=order_total,
+                status=getattr(o, "status", None),
+                can_merge=True,
+            )
+        )
+
+    return out

@@ -32,7 +32,10 @@ from app.routers import (
 app.add_middleware(
     CORSMiddleware,
     # allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
-    allow_origins=["*"],
+    allow_origins=[ "http://localhost:3000",
+                    "http://localhost:3001",
+                    "https://maconet.roffeloac.nl",
+                    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -40,7 +43,11 @@ app.add_middleware(
 
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["maconet.roffeloac.nl"]
+    allowed_hosts=["maconet.roffeloac.nl",
+                   "localhost",
+                   "127.0.0.1",
+                   "*.localhost",
+                   ]
 )
 
 app.include_router(health.router)

@@ -7,7 +7,7 @@ RoffelBackendPOC/*.pyc
 RoffelBackendPOC/roffel_tool.db 
 
 #-----NODE FRONTEND----------
-roffel-portal/node_modules/
+roffel-portal/main-portal/node_modules/
 roffel-portal/.env
 roffel-portal/build/
 
@@ -16,5 +16,9 @@ roffel-portal/build/
 Thumbs.db
 
 #------ENV FILES-------
-roffel-portal/src/.env
+roffel-portal/main-portal/.env
+roffel-portal/mobile-portal/.env
 RoffelBackendPOC/.env
+
+#-------MOBILE EXCLUSIONS-------
+roffel-portal/mobile-portal/node_modules
