@@ -35,7 +35,7 @@ export default function ImportDuallistPage() {
       console.log("IMPORT RESULT:", res.data);
 
       toast.success(
-        `Import geslaagd 🎉
+        `Import geslaagd 
 Nieuw: ${res.data.created}
 Bijgewerkt: ${res.data.updated}`
       );

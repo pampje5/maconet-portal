@@ -25,7 +25,7 @@ import { Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
 
-export default function App() {
+export default function App()  {
   return (
     <BrowserRouter>
       <Routes>

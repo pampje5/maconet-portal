@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 
 
 
-export default function SullairSettingsPage() {
+export default function SullairSettingsPage()  {
 
   const [form, setForm] = useState({
     contact_name: "",

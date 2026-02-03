@@ -30,7 +30,7 @@ def import_duallist_from_excel(file_path: str, db: Session):
             db.query(Article)
             .filter(Article.part_no == part_no)
             .first()
-        )
+         )
 
         if existing:
             existing.description = description or ""

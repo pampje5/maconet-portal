@@ -58,7 +58,7 @@ app.include_router(sullair_settings.router)
 app.include_router(articles.router)
 app.include_router(suppliers.router)
 app.include_router(purchaseorder_numbers.router)
-app.include_router(admin_import.router)
+app.include_router(admin_import.router )
 
 @app.on_event("startup")
 def startup_event():

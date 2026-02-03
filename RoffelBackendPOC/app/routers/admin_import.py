@@ -11,7 +11,7 @@ from app.models.user import UserRole
 router = APIRouter(
     prefix="/admin/import",
     tags=["Admin Imports"],
-)
+ )
 
 @router.post("/duallist")
 def upload_duallist(
