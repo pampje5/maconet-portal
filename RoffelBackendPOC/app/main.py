@@ -40,12 +40,7 @@ app.add_middleware(
 
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=[
-        "127.0.0.1",
-        "localhost",
-        "maconet.roffeloac.nl"
-    ]
-)
+    allowed_hosts=["maconet.roffeloac.nl"]
 
 
 app.include_router(health.router)
