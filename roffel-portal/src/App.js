@@ -19,6 +19,7 @@ import SullairSettingsPage from "./pages/SullairSettingsPage";
 import UsersPage from "./pages/UsersPage";
 import ServiceOrderNumbers from "./pages/ServiceOrderNumbers.jsx";
 import PurchaseOrdersPage from "./pages/PurchaseOrderPage.jsx";
+import ImportDuallistPage from "./pages/ImportDuallistPage.jsx";
 
 import { Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
@@ -147,6 +148,18 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/settings/sullair/import-duallist"
+          element={
+            <ProtectedRoute minRole="admin">
+              <Layout>
+                <ImportDuallistPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
 
         <Route
           path="/settings/users"

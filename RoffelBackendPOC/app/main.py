@@ -26,6 +26,7 @@ from app.routers import (
     articles,
     suppliers,
     purchaseorder_numbers,
+    admin_import,
 )
 
 app.add_middleware(
@@ -39,7 +40,12 @@ app.add_middleware(
 
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["maconet.roffeloac.nl"]
+    allowed_hosts=[
+        "127.0.0.1",
+        "localhost",
+        "maconet.roffeloac.nl"
+    ]
+)
 
 
 app.include_router(health.router)
@@ -57,6 +63,7 @@ app.include_router(sullair_settings.router)
 app.include_router(articles.router)
 app.include_router(suppliers.router)
 app.include_router(purchaseorder_numbers.router)
+app.include_router(admin_import.router)
 
 @app.on_event("startup")
 def startup_event():

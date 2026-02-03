@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import api from "../api";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
+
+
 
 export default function SullairSettingsPage() {
 
@@ -8,6 +11,8 @@ export default function SullairSettingsPage() {
     contact_name: "",
     email: ""
   });
+
+  const navigate = useNavigate();
 
   function updateField(k, v) {
     setForm(prev => ({ ...prev, [k]: v }));
@@ -68,7 +73,18 @@ export default function SullairSettingsPage() {
           Opslaan
         </button>
 
+        <button
+          onClick={() => navigate("/settings/sullair/import-duallist")}
+          className="px-3 py-2 bg-blue-600 text-white rounded"
+        >
+          Duallist importeren
+        </button>
+
       </div>
     </div>
   );
 }
+
+
+
+
