@@ -1,5 +1,4 @@
 import { useState } from "react";
-import axios from "axios";
 import toast from "react-hot-toast";
 import api from "../api";
 
@@ -8,8 +7,7 @@ export default function ImportDuallistPage() {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const API = process.env.REACT_APP_API_URL;
-  const token = localStorage.getItem("token");
+  
 
   async function handleUpload() {
     if (!file) {
