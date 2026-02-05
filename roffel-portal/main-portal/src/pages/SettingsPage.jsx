@@ -12,12 +12,12 @@ export default function SettingsPage() {
 
         {/* ACTIEF */}
         <Link
-          to="/settings/sullair"
+          to="/settings/sullair/import-duallist"
           className="p-6 bg-white rounded-2xl shadow hover:shadow-lg transition block"
         >
-          <h2 className="text-xl font-semibold mb-2">Sullair gegevens</h2>
+          <h2 className="text-xl font-semibold mb-2">Sullair duallist</h2>
           <p className="text-gray-600">
-            Standaard contact & e-mail voor aanvragen
+            Duallist uploaden
           </p>
         </Link>
 

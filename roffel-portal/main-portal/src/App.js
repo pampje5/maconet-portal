@@ -20,6 +20,7 @@ import UsersPage from "./pages/UsersPage";
 import ServiceOrderNumbers from "./pages/ServiceOrderNumbers.jsx";
 import PurchaseOrdersPage from "./pages/PurchaseOrderPage.jsx";
 import ImportDuallistPage from "./pages/ImportDuallistPage.jsx";
+import SuppliersPage from "./pages/SuppliersPage.jsx";
 
 import { Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
@@ -122,6 +123,17 @@ export default function App()  {
             <ProtectedRoute>
               <Layout>
                 <CustomersPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/supplierspage"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <SuppliersPage />
               </Layout>
             </ProtectedRoute>
           }

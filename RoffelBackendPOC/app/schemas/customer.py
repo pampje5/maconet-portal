@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional
 
-class CustomerIn(BaseModel):
+class CustomerCreate(BaseModel):
     name: str
     contact: str | None = None
     email: str | None = None
@@ -12,6 +12,20 @@ class CustomerIn(BaseModel):
     zipcode: str | None = None
     city: str | None = None
     country: str | None = None
+
+class CustomerUpdate(BaseModel):
+    name: str | None = None
+    contact: str | None = None
+    email: str | None = None
+    price_type: str | None = None
+
+    address: str | None = None
+    zipcode: str | None = None
+    city: str | None = None
+    country: str | None = None
+
+    is_active: bool | None = None
+
 
 class CustomerOut(BaseModel):
     id: int
@@ -25,6 +39,7 @@ class CustomerOut(BaseModel):
     zipcode: str | None = None
     city: str | None = None
     country: str | None = None
+    is_active: bool
 
     class Config:
         from_attributes = True

@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Foreig
 from datetime import datetime
 
 from app.database import Base
-
+import sqlalchemy as sa
 
 class Customer(Base):
     __tablename__ = "customers"
@@ -17,6 +17,8 @@ class Customer(Base):
     zipcode = Column(String, nullable=True)
     city = Column(String, nullable=True)
     country = Column(String, nullable=True)
+
+    is_active = Column(Boolean, nullable=False, server_default=sa.true())
 
     created_at = Column(DateTime, default=datetime.utcnow)
 

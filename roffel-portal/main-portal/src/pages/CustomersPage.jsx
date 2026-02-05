@@ -16,7 +16,13 @@ export default function CustomersPage() {
     contact_name: "",
     email: "",
   });
+  const [filter, setFilter] = useState("active");
 
+  const filteredCustomers = customers.filter((c) => {
+    if (filter === "active") return c.is_active;
+    if (filter === "inactive") return !c.is_active;
+    return true;
+  });
 
 
   // ---- Nieuw klant formulier ----
@@ -117,23 +123,7 @@ export default function CustomersPage() {
     }
   }
 
-  // ======================
-  // DELETE CUSTOMER
-  // ======================
-  async function deleteCustomer() {
-    if (!selectedCustomer) return;
 
-    if (!window.confirm("Weet je zeker dat je deze klant wilt verwijderen?"))
-      return;
-
-    await api.delete(`/customers/${selectedCustomer.id}`);
-
-    toast.success("Klant verwijderd");
-
-    setSelectedCustomer(null);
-    setContacts([]);
-    loadCustomers();
-  }
 
   // ======================
   // SAVE SETTINGS
@@ -232,15 +222,45 @@ export default function CustomersPage() {
       <div className="bg-white p-6 rounded-2xl shadow space-y-4">
         <h2 className="font-semibold">Selecteer klant</h2>
 
+        <div className="flex gap-2">
+          <button
+            className={`px-3 py-1 rounded ${
+              filter === "active" ? "bg-blue-600 text-white" : "bg-gray-200"
+            }`}
+            onClick={() => setFilter("active")}
+          >
+            Actief
+          </button>
+
+          <button
+            className={`px-3 py-1 rounded ${
+              filter === "inactive" ? "bg-blue-600 text-white" : "bg-gray-200"
+            }`}
+            onClick={() => setFilter("inactive")}
+          >
+            Inactief
+          </button>
+
+          <button
+            className={`px-3 py-1 rounded ${
+              filter === "all" ? "bg-blue-600 text-white" : "bg-gray-200"
+            }`}
+            onClick={() => setFilter("all")}
+          >
+            Alles
+          </button>
+        </div>
+
+
         <select
           className="w-full border rounded px-3 py-2"
           value={selectedCustomer?.id || ""}
           onChange={(e) => handleSelect(e.target.value)}
         >
           <option value="">-- kies klant --</option>
-          {customers.map((c) => (
+          {filteredCustomers.map((c) => (
             <option key={c.id} value={c.id}>
-              {c.name}
+              {c.name} {!c.is_active && "(inactief)"}
             </option>
           ))}
         </select>
@@ -248,11 +268,37 @@ export default function CustomersPage() {
         {selectedCustomer && (
           <>
             <button
-              className="bg-red-600 text-white rounded px-4 py-2"
-              onClick={deleteCustomer}
+              className={`text-white rounded px-4 py-2 ${
+                selectedCustomer.is_active
+                  ? "bg-red-600"
+                  : "bg-green-600"
+              }`}
+              onClick={async () => {
+                try {
+                  await api.put(
+                    `/customers/${selectedCustomer.id}`,
+                    { is_active: !selectedCustomer.is_active }
+                  );
+
+                  toast.success(
+                    selectedCustomer.is_active
+                      ? "Klant gedeactiveerd"
+                      : "Klant geactiveerd"
+                  );
+
+                  setSelectedCustomer(null);
+                  loadCustomers();
+                } catch (err) {
+                  console.error(err);
+                  toast.error("Actie mislukt");
+                }
+              }}
             >
-              Klant verwijderen
+              {selectedCustomer.is_active
+                ? "Klant deactiveren"
+                : "Klant activeren"}
             </button>
+
 
             <hr />
 
@@ -417,7 +463,7 @@ export default function CustomersPage() {
 
                   try {
                     await api.post(
-                      `$/customers/${selectedCustomer.id}/price-rules`,
+                      `/customers/${selectedCustomer.id}/price-rules`,
                       priceRules,
                       
                     );

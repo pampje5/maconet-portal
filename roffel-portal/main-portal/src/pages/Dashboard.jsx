@@ -92,6 +92,17 @@ export default function Dashboard() {
           </p>
         </Link>
 
+        {/* Leverancierbeheer */}
+        <Link
+        to="/supplierspage"
+        className="p-6 bg-white rounded-2xl shadow hover:shadow-lg transition block"
+        >
+          <h2 className="text-xl font-semibold mb-2">Leverancierbeheer</h2>
+          <p className="text-gray-600">
+            leveranciers en contactpersonen beheren
+          </p>
+        </Link>
+
         {/* Instellingen */}
        {me && me.role !== "user" && (
         <Link
