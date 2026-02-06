@@ -19,6 +19,7 @@ class Customer(Base):
     country = Column(String, nullable=True)
 
     is_active = Column(Boolean, nullable=False, server_default=sa.true())
+    reserve_flag= Column(Boolean, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
