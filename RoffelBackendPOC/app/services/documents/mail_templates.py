@@ -1,14 +1,17 @@
 # app/services/documents/mail_templates.py
 
+
+
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 
 from app.models.serviceorder import ServiceOrder
 from app.models.serviceorder_item import ServiceOrderItem
-from app.models.customer import Customer, CustomerContact, SullairSettings
+from app.models.customer import Customer, CustomerContact
+from app.models.supplier import Supplier
 
 
-
+from app.services.documents.stock_order import build_stock_order_pdf
 from app.services.pricing import calculate_order_totals
 from app.services.pricing import format_currency
 
@@ -17,7 +20,7 @@ from app.services.pricing import format_currency
 # SULLAIR – LEADTIME REQUEST
 # ==================================================
 
-def build_sullair_leadtime_mail(db: Session, so: str):
+def build_supplier_leadtime_mail(db: Session, so: str):
     order = db.query(ServiceOrder).filter(ServiceOrder.so == so).first()
     if not order:
         raise HTTPException(404, "Serviceorder not found")
@@ -29,9 +32,27 @@ def build_sullair_leadtime_mail(db: Session, so: str):
     if not items:
         raise HTTPException(400, "No items in serviceorder")
 
-    sullair = db.query(SullairSettings).first()
-    if not sullair:
-        raise HTTPException(400, "Sullair settings not configured")
+    # ✅ bepaal leverancier 
+    supplier_id = order.supplier_id
+    if not supplier_id:
+        raise HTTPException(400, "Supplier not set for serviceorder")
+
+    supplier = (
+        db.query(Supplier)
+        .filter(Supplier.id == supplier_id)
+        .first()
+    )
+
+    if not supplier or not supplier.email_general:
+        raise HTTPException(400, "Supplier or supplier email not configured")
+
+
+    supplier = db.query(Supplier).filter(
+        Supplier.id == supplier_id
+    ).first()
+
+    if not supplier or not supplier.email_general:
+        raise HTTPException(400, "Supplier or supplier email not configured")
 
     rows = ""
     for idx, it in enumerate(items, start=1):
@@ -49,10 +70,10 @@ def build_sullair_leadtime_mail(db: Session, so: str):
 
     body = f"""
     <div style="font-family: Arial; font-size:14px;">
-        <p>Dear {sullair.contact_name or 'Sir or Madam'},</p>
+        <p>Dear {supplier.supplier_contact or 'Sir or Madam'},</p>
 
         <p>
-            We kindly request, with serviceorder number
+            We kindly request, with service order number
             <b>{order.so}</b>, the leadtimes for the following items:
         </p>
 
@@ -74,7 +95,7 @@ def build_sullair_leadtime_mail(db: Session, so: str):
     """
 
     return {
-        "to": sullair.email,
+        "to": supplier.email_general,
         "subject": f"Leadtime request service order {order.so}",
         "body_html": body,
     }
@@ -260,4 +281,30 @@ def build_order_confirmation_mail(db: Session, so: str):
         "to": contact.email,
         "subject": f"Order confirmation service order {order.so}",
         "body_html": body,
+    }
+# ================================================
+# ORDER
+# ================================================
+def build_stock_order_mail(db: Session, order: ServiceOrder):
+    supplier = db.query(Supplier).filter(
+        Supplier.id == order.supplier_id
+    ).first()
+
+    if not supplier or not supplier.email_general:
+        raise HTTPException(400, "Supplier email not configured")
+
+    pdf_path = build_stock_order_pdf(db, order)
+
+    return {
+        "to": supplier.email_general,
+        "subject": f"Stock order {order.so}",
+        "body_html": f"""
+        <p>Dear {supplier.supplier_contact or 'Sir or Madam'},</p>
+        <p>
+            Please find attached our stock order for service order
+            <b>{order.so}</b>.
+        </p>
+        <p>Kind regards,<br/>Maconet B.V.</p>
+        """,
+        "pdf_path": pdf_path,
     }

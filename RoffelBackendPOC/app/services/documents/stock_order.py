@@ -18,9 +18,41 @@ from reportlab.lib import colors
 
 from app.models.serviceorder import ServiceOrder
 from app.models.serviceorder_item import ServiceOrderItem
-from app.models.customer import SullairSettings
+from app.models.supplier import Supplier
 from app.services.pricing import format_currency
 
+# ===============================
+# Helper
+# ===============================
+def get_supplier_for_order(db: Session, order):
+    """
+    Bepaalt leverancier voor:
+    - ServiceOrder
+    - PurchaseOrder (met serviceorders)
+    """
+    is_po = hasattr(order, "serviceorders")
+
+    if is_po:
+        supplier_ids = {
+            so.supplier_id for so in order.serviceorders if so.supplier_id
+        }
+        if len(supplier_ids) != 1:
+            raise HTTPException(
+                400,
+                "All serviceorders in a PO must have the same supplier"
+            )
+        supplier_id = supplier_ids.pop()
+    else:
+        supplier_id = order.supplier_id
+
+    if not supplier_id:
+        raise HTTPException(400, "Supplier not set for order")
+
+    supplier = db.query(Supplier).filter(Supplier.id == supplier_id).first()
+    if not supplier:
+        raise HTTPException(400, "Supplier not found")
+
+    return supplier
 
 # ==================================================
 # DATA
@@ -86,9 +118,10 @@ def get_stock_order_items_from_serviceorders(
 # ==================================================
 
 def build_stock_order_pdf(db: Session, order) -> str:
-    sullair = db.query(SullairSettings).first()
-    if not sullair:
-        raise HTTPException(400, "Sullair settings not configured")
+    supplier = get_supplier_for_order(db, order)
+
+    if not supplier:
+        raise HTTPException(400, "Supplier is not configured")
 
     # ------------------------------------------------
     # Context bepalen: ServiceOrder of PurchaseOrder
@@ -190,7 +223,7 @@ def build_stock_order_pdf(db: Session, order) -> str:
     elements.append(Spacer(1, 12))
 
     elements.append(Paragraph(
-        f"Dear {sullair.contact_name or 'Sir or Madam'},", normal
+        f"Dear {supplier.supplier_contact or 'Sir or Madam'},", normal
     ))
     elements.append(Spacer(1, 6))
     elements.append(Paragraph(

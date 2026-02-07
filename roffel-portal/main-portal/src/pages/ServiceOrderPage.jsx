@@ -40,6 +40,7 @@ export default function ServiceorderPage() {
   });
   const [showMailModal, setShowMailModal] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [mailType, setMailType] = useState(null);
 
   // =========================
   // Leave Modal
@@ -512,6 +513,7 @@ async function changeStatus(nextStatus) {
         null
         );
 
+      setMailType("leadtime");
       setMailPreview(res.data);
       setEditMode(false);
       setShowMailModal(true);
@@ -534,6 +536,7 @@ async function changeStatus(nextStatus) {
         null
         );
 
+      setMailType("offer");
       setMailPreview(res.data);
       setEditMode(false);
       setShowMailModal(true);
@@ -555,6 +558,7 @@ async function changeStatus(nextStatus) {
       `/serviceorders/${encodeURIComponent(form.so)}/order/preview`
       );
 
+    setMailType("stock");
     setMailPreview(res.data);     // bevat to/subject/body_html + pdf/pdf_path (of straks pdf_url)
     setEditMode(false);
     setShowMailModal(true);
@@ -573,7 +577,8 @@ async function changeStatus(nextStatus) {
       const res = await api.post(
         `/serviceorders/${form.so}/mail/order-confirmation/preview`,
         null);
-
+      
+      setMailType("order-confirmation");
       setMailPreview(res.data);
       setShowMailModal(true);
       loadLog(form.so);
@@ -586,17 +591,28 @@ async function changeStatus(nextStatus) {
   async function sendMail() {
     if (!mailPreview) return;
 
-    const isStockOrder = !!mailPreview.pdf;
+    if (!form.so || !mailType) {
+      toast.error("Onbekend mailtype");
+      return;
+    }
 
-    const url = isStockOrder ? `/mail/stock-order/simulate` : `/mail/send`;
+    // const isStockOrder = !!mailPreview.pdf;
 
-    const payload = isStockOrder
-      ? { so: form.so }
-      : {
-          to: mailPreview.to,
-          subject: mailPreview.subject,
-          body_html: mailPreview.body_html,
-        };
+    // const url = isStockOrder ? `/serviceorders/${form.so}/order/preview` : `/serviceorders/${form.so}/mail/leadtime/send`;
+
+    let url;
+
+    if (mailType === "stock") {
+      url = `/serviceorders/${form.so}/order/send`;
+    } else if (mailType === "leadtime") {
+      url = `/serviceorders/${form.so}/mail/leadtime/send`;
+    } else if (mailType === "order-confirmation") {
+      url = `/serviceorders/${form.so}/mail/order-confirmation/send`;
+    } else if (mailType === "offer") {
+      url = `/serviceorders/${form.so}/mail/offer/send`;
+    }
+
+    const payload = {so: form.so};
 
     try {
       await api.post(url, payload);
