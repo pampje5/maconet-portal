@@ -11,7 +11,8 @@ from app.core.security import (
     require_min_role,
     UserRole,
 )
-from app.core.mail import send_email
+from app.core.config import FRONTEND_URL
+from app.services.mail.mail_sender import send_mail
 import secrets
 import os
 
@@ -28,11 +29,11 @@ def create_user(
         raise HTTPException(400, "User already exists")
 
     # 🔐 tijdelijk wachtwoord
-    temp_password = secrets.token_urlsafe(10)
+    # temp_password = secrets.token_urlsafe(10)
 
     user = User(
         email=data.email,
-        password_hash=hash_password(temp_password),
+        password_hash="__invite_pending__",
         role=data.role,
         first_name=data.first_name,
         last_name=data.last_name,
@@ -48,29 +49,26 @@ def create_user(
     db.commit()
     db.refresh(user)
 
-    reset_url = f"{os.getenv('FRONTEND_URL')}/reset-password/{reset_token}"
+    reset_url = f"{FRONTEND_URL}/reset-password/{reset_token}"
 
-    send_email(
+    send_mail(
         to=user.email,
-        subject="Je account voor het portal",
-        html=f"""
-        <h2>Welkom</h2>
-        <p>Er is een account voor je aangemaakt.</p>
+        subject="Je account voor het Maconet Portal",
+        body_html=f"""
+        <p>Hallo{f" {user.first_name}" if user.first_name else ""},</p>
+
+        <p>Er is een account voor je aangemaakt in het Maconet Portal.</p>
 
         <p>
-        <strong>Gebruikersnaam:</strong> {user.email}<br/>
-        <strong>Tijdelijk wachtwoord:</strong> {temp_password}
+            <a href="{reset_url}">
+                Klik hier om je wachtwoord in te stellen
+            </a>
         </p>
 
         <p>
-        <a href="{reset_url}">
-            Klik hier om je wachtwoord te wijzigen
-        </a>
-        <br/>
-        (geldig tot {user.reset_expires.strftime('%d-%m-%Y %H:%M')} UTC)
+            Deze link is geldig tot
+            {user.reset_expires.strftime('%d-%m-%Y %H:%M')}.
         </p>
-
-        <p>Wijzig je wachtwoord direct na het inloggen.</p>
         """,
     )
 

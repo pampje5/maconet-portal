@@ -1,3 +1,4 @@
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -7,13 +8,14 @@ import secrets
 from app.database import get_db
 from app.models.user import User
 from app.schemas.auth import PasswordResetRequest, PasswordResetSubmit
+from app.services.mail.mail_sender import send_mail
 from app.core.security import (
     get_current_user,
     create_access_token,
     verify_password,
     hash_password,
 )
-
+from app.core.config import FRONTEND_URL
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
@@ -61,15 +63,33 @@ def request_password_reset(
     if not user:
         return {"result": "ok"}
 
-    token = secrets.token_urlsafe(32)
-    user.reset_token = token
+    reset_token = secrets.token_urlsafe(32)
+    user.reset_token = reset_token
     user.reset_expires = datetime.utcnow() + timedelta(minutes=30)
 
     db.commit()
 
     # later: mailservice
-    print("RESET LINK:")
-    print(f"http://localhost:3000/reset-password/{token}")
+    reset_url = f"{FRONTEND_URL}/reset-password/{reset_token}"
+
+    send_mail(
+        to=user.email,
+        subject="Wachtwoord reset – Maconet Portal",
+        body_html=f"""
+        <p>Hallo{f" {user.first_name}" if user.first_name else ""},</p>
+
+        <p>Je hebt een verzoek gedaan om je wachtwoord te resetten.</p>
+
+        <p>
+            <a href="{reset_url}">
+                Klik hier om een nieuw wachtwoord in te stellen
+            </a>
+        </p>
+
+        <p>Deze link is 30 minuten geldig.</p>
+        """,
+    )
+
 
     return {"result": "ok"}
 

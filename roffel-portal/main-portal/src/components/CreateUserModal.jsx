@@ -96,7 +96,7 @@ export default function CreateUserModal({ onClose, onCreated }) {
             >
               <option value="user">User</option>
               <option value="admin">Admin</option>
-              <option value="designer">Designer</option>
+              <option value="developer">Developer</option>
             </select>
           </div>
 

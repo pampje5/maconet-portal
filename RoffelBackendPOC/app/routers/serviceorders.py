@@ -218,6 +218,31 @@ def receive_item(
 
     return {"status": "ok"}
 
+@router.put("/{so}/po")
+def update_serviceorder_po(
+    so: str,
+    payload: dict,  # { "po": "12345" }
+    db: Session = Depends(get_db),
+    user=Depends(require_min_role(UserRole.user)),
+):
+    order = db.query(ServiceOrder).filter(ServiceOrder.so == so).first()
+
+    if not order:
+        raise HTTPException(404, "Serviceorder not found")
+
+    order.po = payload.get("po")
+    db.commit()
+
+    log_event(
+        db,
+        order,
+        "PO_UPDATED",
+        f"PO gewijzigd naar {order.po or '-'}"
+    )
+
+    return {"status": "ok", "po": order.po}
+
+
 
 # ==================================================
 # ARTICLES (kan later naar eigen router)

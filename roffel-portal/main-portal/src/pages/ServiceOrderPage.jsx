@@ -6,6 +6,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import ActionBar from "../components/ActionBar";
 import Button from "../components/ui/Button";
 import ConfirmLeaveModal from "../components/ConfirmLeaveModal";
+import ConfirmSaveModal from "../components/ConfirmSaveModal";
 import { useNavigationGuard } from "../context/NavigationGuardContext";
 
 
@@ -28,6 +29,10 @@ export default function ServiceorderPage() {
   const [soReserved, setSoReserved] = useState(false);
 
   const [soLocked, setSoLocked] = useState(false);
+
+  const [showConfirmSave, setShowConfirmSave] = useState(false);
+
+  const lockIfConfirmed = soLocked
 
   // ========================
   // Mail preview modal
@@ -419,6 +424,26 @@ async function changeStatus(nextStatus) {
     }
   }
 
+  async function savePoOnly() {
+    if (!form.so) {
+      toast.error("Geen serviceordernummer");
+      return;
+    }
+
+    try {
+      await api.put(
+        `/serviceorders/${form.so}/po`,
+        { po: form.po }
+      );
+
+      toast.success("PO-nummer opgeslagen");
+      loadLog(form.so);
+    } catch (err) {
+      console.error(err);
+      toast.error("PO opslaan mislukt");
+    }
+  }
+
 
 
   // =========================
@@ -749,6 +774,17 @@ async function changeStatus(nextStatus) {
         }}
       />
 
+    <ConfirmSaveModal
+      open={showConfirmSave}
+      onCancel={() => setShowConfirmSave(false)}
+      onConfirm={async () => {
+        setShowConfirmSave(false);
+        await saveOrder();
+      }}
+    />
+
+  
+
     <div className="min-h-screen bg-gray-100 p-8 pb-32">
       <h1 className="text-2xl font-bold mb-6">Serviceorder Sullair</h1>
 
@@ -785,18 +821,38 @@ async function changeStatus(nextStatus) {
               <input
                 className="w-full border rounded px-3 py-2"
                 value={form.customer_ref}
+                disabled={lockIfConfirmed}
                 onChange={(e) => updateField("customer_ref", e.target.value)}
               />
             </div>
 
             <div>
               <label>Inkoopnummer (PO)</label>
-              <input
-                className="w-full border rounded px-3 py-2"
-                value={form.po}
-                onChange={(e) => updateField("po", e.target.value)}
-              />
+
+              <div className="flex gap-2">
+                <input
+                  className="w-full border rounded px-3 py-2"
+                  value={form.po}
+                  onChange={(e) => updateField("po", e.target.value)}
+                />
+
+                {soLocked && (
+                  <Button
+                    variant="secondary"
+                    onClick={savePoOnly}
+                  >
+                    PO opslaan
+                  </Button>
+                )}
+              </div>
+
+              {soLocked && (
+                <p className="text-xs text-gray-500 mt-1">
+                  PO kan ook na bevestiging nog worden aangepast
+                </p>
+              )}
             </div>
+
 
 
 
@@ -836,6 +892,7 @@ async function changeStatus(nextStatus) {
               <select
                 className="w-full border rounded px-3 py-2"
                 value={selectedCustomerId || ""}
+                disabled={lockIfConfirmed}
                 onChange={(e) =>
                   setSelectedCustomerId(e.target.value ? Number(e.target.value) : null)
                 }
@@ -854,10 +911,10 @@ async function changeStatus(nextStatus) {
               <select
                 className="w-full border rounded px-3 py-2"
                 value={selectedContactId || ""}
-                onChange={(e) =>
+                                onChange={(e) =>
                   setSelectedContactId(e.target.value ? Number(e.target.value) : null)
                 }
-                disabled={!contacts.length}
+                disabled={lockIfConfirmed || !contacts.length}
               >
                 <option value="">-- kies contactpersoon --</option>
                 {contacts.map((ct) => (
@@ -882,6 +939,7 @@ async function changeStatus(nextStatus) {
               <select
                 className="w-full border rounded px-3 py-2"
                 value={selectedSupplierId || ""}
+                disabled={lockIfConfirmed}
                 onChange={(e) => setSelectedSupplierId(Number(e.target.value))}
               >
                 <option value="">-- kies leverancier --</option>
@@ -896,9 +954,14 @@ async function changeStatus(nextStatus) {
         </div>
 
         <div className="flex items-center gap-3">
-          <Button variant="success" onClick={saveOrder} disabled={loadingOrder}>
-            {loadingOrder ? "Laden..." : "Serviceorder opslaan"}
+          <Button
+            variant="success"
+            onClick={() => setShowConfirmSave(true)}
+            disabled={soLocked}
+          >
+            Serviceorder opslaan
           </Button>
+
 
           {soFromUrl && (
             <span className="text-sm text-gray-500">

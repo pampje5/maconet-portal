@@ -106,7 +106,7 @@ export default function UsersPage() {
                     <option value="user">User</option>
                     <option value="admin">Admin</option>
                     {me?.role === "developer" && (
-                      <option value="developer">developer</option>
+                      <option value="developer">Developer</option>
                     )}
                   </select>
                 </td>

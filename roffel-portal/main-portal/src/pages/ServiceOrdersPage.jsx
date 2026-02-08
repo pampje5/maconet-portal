@@ -54,6 +54,7 @@ export default function ServiceOrdersPage() {
             <tr>
               <th className="border p-2">SO</th>
               <th className="border p-2">Klant</th>
+              <th className="border p-2">Leverancier</th>
               <th className="border p-2">PO</th>
               <th className="border p-2">Datum</th>
               <th className="border p-2 text-center">Status</th>
@@ -73,7 +74,11 @@ export default function ServiceOrdersPage() {
                 </td>
 
                 <td className="border p-2">
-                  {o.customer_name || o.customer_id || "—"}
+                  {o.customer?.name || "—"}
+                </td>
+
+                <td className="border p-2">
+                  {o.supplier?.name || "—"}
                 </td>
 
                 <td className="border p-2">
